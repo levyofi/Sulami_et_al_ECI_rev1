@@ -1,0 +1,16 @@
+.DS_Store
+*.aux
+*.bbl
+*.blg
+*.fdb_latexmk
+*.fls
+*.log
+*.out
+*.synctex.gz
+*.xdv
+*.bak
+main.pdf
+supp.pdf
+cover_letter.pdf
+main_original.tex
+supp_original.tex

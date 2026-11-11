@@ -1,0 +1,57 @@
+\documentclass[12pt]{letter}
+\usepackage{geometry}
+\geometry{a4paper, margin=2.5cm}
+\usepackage{hyperref}
+
+\begin{document}
+
+\begin{letter}{}
+
+\address{
+    Dr. Ofir Levy \\
+    School of Zoology, Faculty of Life Sciences \\
+    Tel Aviv University, 6997801, Israel \\
+    Email: \href{mailto:levyofir@tauex.tau.ac.il}{levyofir@tauex.tau.ac.il} \\
+    Phone: +972504384717
+}
+
+\signature{Ofir Levy, Ph.D.}
+
+\opening{June 17, 2026}
+\noindent Dear Editor,
+
+\vspace{0.5em}
+We are pleased to submit our manuscript entitled ``Spatially Aware Deep Learning for Microclimate Prediction from High-Resolution Geospatial Imagery'' for consideration in \textit{Ecological Informatics}.
+
+To study climate impacts on organismal physiology, behavior, and survival, ecologists require fine-scale microclimate data (meters to centimeters) rather than standard macroclimate datasets (often $>10$ km) that fail to reflect actual organismal experiences. While biophysical microclimate models are essential tools, they frequently assume spatial independence and simplify horizontal heat transfer, introducing systematic prediction errors. Operating at the interdisciplinary crossover between ecology and informatics, our work addresses this data-intensive challenge. We developed a convolutional neural network framework that integrates high-resolution drone-derived geospatial layers (vegetation cover, shade, slope variation, height, and skyview) with local meteorological data to model fine-scale ground temperatures at a 15-cm pixel resolution.
+
+Rather than treating machine learning as a predictive ``black box,'' we employ it as a diagnostic tool. By systematically varying the spatial extent of input tiles (from 0.75 m to 12.15 m), we physically map the spatial limits of lateral heat and radiative transfer, showing that adjacent landscape features within a 5--7 m radius substantially alter local microclimates. This quantitative method provides a novel framework for data assimilation and uncertainty analysis in computational ecology. By identifying when and where assumptions of spatial independence in biophysical models are insufficient, our study provides practical guidance for integrating spatial interactions into hybrid mechanistic--machine learning frameworks (such as NicheMapR) to enhance predictions under global climate change.
+
+We believe the manuscript will be of broad interest to readers working at the intersection of ecological informatics, environmental modeling, and explainable machine learning.
+
+To assist in the review process, we are also happy to suggest several reviewers:
+\begin{enumerate}
+    \item \textbf{John, Aji} \\
+    Department of Biology, University of Washington \\
+    Email: \href{mailto:ajijohn@uw.edu}{ajijohn@uw.edu} \\
+    Expertise: Microclimate modeling and machine learning
+    \item \textbf{Logan, Mike} \\
+    University of Nevada, Reno \\
+    Email: \href{mailto:mike.logan1983@gmail.com}{mike.logan1983@gmail.com} \\
+    Expertise: Remote sensing and thermal biology
+    \item \textbf{Oskyrko, Oleksandra} \\
+    School of Life Sciences, Fudan University \\
+    Email: \href{mailto:sashaoskirko@gmail.com}{sashaoskirko@gmail.com} \\
+    Expertise: Thermal biology
+    \item \textbf{Pincebourde, Sylvain} \\
+    University of Tours \\
+    Email: \href{mailto:sylvain.pincebourde@univ-tours.fr}{sylvain.pincebourde@univ-tours.fr} \\
+    Expertise: Microclimate modeling
+\end{enumerate}
+
+Thank you for your consideration.
+
+\closing{Sincerely,}
+
+\end{letter}
+\end{document}
