@@ -320,11 +320,7 @@ C_H = \frac{\kappa^2}{\left[ \ln \left( \frac{z + z_0}{z_0} \right) - \psi_m\lef
 \end{equation}
 \noindent where $\kappa = 0.40$ is the von K\'arm\'an constant, $z = 2.0$~m is the surface-layer aerodynamic reference height, $z_0$ is the aerodynamic roughness length, and $\psi_m$ and $\psi_h$ are empirical stability correction functions evaluated at $z/L$, with $L$ being the Monin--Obukhov stability length. Ground roughness is set to $z_{0g} = 0.03$~m to represent the stones, gravel, and sparse shrubs at the site (updated from 0.01~m for smooth bare soil in \citealt{Itzkovitch2025}). On vegetated pixels ($TGI \ge 0.01$), roughness length scales with canopy height ($z_{0m} = \max(z_{0g}, 0.02\,H_{\textrm{veg}})$), with equal roughness lengths for momentum and heat ($z_{0h} = z_{0m}$).
 
-Under neutral conditions ($T_g = T_a$), buoyant forces vanish ($z/L = 0$) and the stability corrections drop out ($\psi_m = \psi_h = 0$). In this limit, Eq.~\ref{eq:CH} simplifies to a baseline neutral bulk transfer coefficient ($C_{H,\textrm{neutral}}$) driven solely by surface roughness:
-\begin{equation} \label{eq:neutral}
-C_{H,\textrm{neutral}} = \frac{\kappa^2}{\left[ \ln \left( \frac{z + z_0}{z_0} \right) \right]^2}\textrm{.}
-\end{equation}
-When ground and air temperatures differ, atmospheric stability adjusts this baseline. When the ground is hotter than the air ($T_g > T_a$), thermal convection enhances mixing ($\psi_m, \psi_h > 0$), boosting $C_H$ above the neutral baseline ($C_H > C_{H,\textrm{neutral}}$). Conversely, when the ground is cooler than the air ($T_g < T_a$), dense air settles at the surface, suppressing turbulence ($\psi_m, \psi_h < 0$) and driving $C_H$ below $C_{H,\textrm{neutral}}$ toward zero. In our baseline uncoupled 1D model, this stability formulation produces an artificial cooling bias in shade: because each pixel is solved in isolation, narrow shadows are classified as cold, stably stratified surfaces with suppressed heat exchange, ignoring the strong turbulence advected from surrounding sunlit terrain (resolved in Section~S3.2).
+When the ground is hotter than the air ($T_g > T_a$), thermal convection enhances mixing ($\psi_m, \psi_h > 0$). Conversely, when the ground is cooler than the air ($T_g < T_a$), dense air settles at the surface, suppressing turbulence ($\psi_m, \psi_h < 0$) and driving $C_H$ toward zero. In our baseline uncoupled 1D model, this stability formulation produces an artificial cooling bias in shade: because each pixel is solved in isolation, narrow shadows are classified as cold, stably stratified surfaces with suppressed heat exchange, ignoring the strong turbulence advected from surrounding sunlit terrain (resolved in Section~S3.2).
 
 \subsubsection{Latent heat flux}
 
@@ -394,7 +390,11 @@ T_a = T_{\textrm{ref}} + \phi \left( T_{\textrm{air}} - T_{\textrm{air,uniform}}
 
 \noindent In our 1D model (Section~S3.1.3; \citealt{Itzkovitch2025}), the transfer coefficient $C_H$ includes stability corrections that heavily suppress turbulent mixing whenever the ground is cooler than the air ($T_g < T_a$). While this assumption holds over extensive cold surfaces (such as lakes or snowfields), it fails for a narrow 1--2~m shadow: air entering the shadow has just been intensely mixed by thermal convection over the hot sunlit ground, and this turbulence does not dissipate during the 1--2 seconds required to cross the patch. Indeed, across heterogeneous landscapes, advection of turbulence from surrounding terrain maintains near-neutral mixing over isolated cool patches \citep{helgason_2012}.
 
-To reflect this persistent mixing, we prevent turbulent exchange from collapsing in shade by imposing a neutral-stability floor on $C_H$ (using $C_{H,\textrm{neutral}}$ from Eq.~\ref{eq:neutral}):
+To reflect this persistent mixing, we prevent turbulent exchange from collapsing in shade by imposing a neutral-stability floor ($C_{H,\textrm{neutral}}$) driven solely by surface roughness, where stability corrections drop out ($\psi_m = \psi_h = 0$):
+\begin{equation} \label{eq:neutral}
+C_{H,\textrm{neutral}} = \frac{\kappa^2}{\left[ \ln \left( \frac{z + z_0}{z_0} \right) \right]^2}\textrm{.}
+\end{equation}
+The effective bulk transfer coefficient is then bounded by this neutral baseline:
 \begin{equation} \label{eq:floor}
 C_H = \max \left( C_H, \; C_{H,\textrm{neutral}} \right)\textrm{.}
 \end{equation}
