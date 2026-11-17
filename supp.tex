@@ -181,14 +181,14 @@ First, the map resolution is never downsampled. Standard image-classification ne
 
 Second, to extend the area considered around each pixel without reducing the map, the network uses dilated convolutions \citep{yu_2016}. Unlike standard convolutions that sample only immediately adjacent pixels ($d = 1$), dilated convolutions space the nine sampling points across a wider grid at regular intervals of $d$ pixels (e.g., $d = 2$ samples every second pixel, up to $d = 16$ sampling points 16 pixels apart). Within each layer, all 32 filters share the same dilation rate. Across the six sequential layers (the dilation stages in Fig.~\ref{fig:dilation_stages}), we progressively doubled the dilation rate ($d = 1, 1, 2, 4, 8, 16$). Widening these sampling intervals across layers expands the network's total field of view (receptive field) to $1 + 2(1+1+2+4+8+16) = 65$ pixels ($\approx 10$~m across) by the sixth layer. We chose six layers so that this field of view approximates the scale of the largest tiles. In particular, it includes all pixels in the $63\times63$ tile (9.5~m) and about 80\% of the width of the $81\times81$ tile (12.2~m). In the $81\times81$ tile, the features of the centre pixel therefore do not encompass a ring about 8 pixels (1.2~m) wide at the tile edge, which reaches the prediction only through the tile-wide average and maximum.
 
-Each of the nine tile sizes (from $1\times1$ to $81\times81$ pixels) was trained as an independent model. At each layer, we temporarily pad the borders with zeros equal to the dilation rate ($p = d$). This allows the filters to evaluate pixels along the tile edges by reading neutral zeros when their reach extends outside the boundary, which in turn preserves the full $H \times W$ spatial dimensions across all six layers without shrinking (Fig.~\ref{fig:dilation_stages}). Because all inputs are $z$-score standardized to zero mean, these neutral boundary values carry no environmental information, ensuring that improvements in accuracy reflect only the landscape features contained within each tile.
+Each of the nine tile sizes (from $1\times1$ to $81\times81$ pixels) was trained as an independent model. At each layer, we temporarily pad the borders with zeros equal to the dilation rate ($p = d$), so the filters can evaluate pixels along the tile edges by reading neutral zeros when their reach extends outside the boundary. Because all inputs are $z$-score standardized to zero mean, these neutral boundary values carry no environmental information, ensuring that improvements in accuracy reflect only the landscape features contained within each tile.
 
-\noindent Formally, the six layers each have 32 channels, $3\times3$ kernels and dilation factors $d \in \{1, 1, 2, 4, 8, 16\}$. With input tile $X \in \mathbb{R}^{5 \times H \times W}$,
+\noindent Formally, each of the six layers has 32 channels, $3\times3$ kernels and dilation factors $d \in \{1, 1, 2, 4, 8, 16\}$. With input tile $X \in \mathbb{R}^{5 \times H \times W}$,
 \begin{align}
 F_1 &= \text{ReLU}\left(\text{GroupNorm}\left(\text{Conv}_1(X, d_1=1)\right)\right), \\
 F_l &= \text{ReLU}\left(\text{GroupNorm}\left(\text{Conv}_l(F_{l-1}, d_l)\right)\right), \quad l = 2,\dots,6,
 \end{align}
-with every $F_l \in \mathbb{R}^{32 \times H \times W}$. After each convolutional layer, Group Normalization \citep{wu_2018} rescales the calculated values to have zero mean and unit variance. This prevents the numbers from growing excessively large or vanishing across the six layers, keeping model training stable regardless of batch size. The rectified linear unit (ReLU; \citealt{nair_2010}) then sets negative values to zero, which enables the network to learn nonlinear relationships. Neither operation alters the spatial resolution or extends the reach of the filters. The final output, $F_6$, is the terrain summary used in the next subsection.
+with every $F_l \in \mathbb{R}^{32 \times H \times W}$. After each convolutional layer, Group Normalization \citep{wu_2018} rescales the calculated values to have zero mean and unit variance. This prevents the numbers from growing excessively large or vanishing across the six layers, keeping model training stable regardless of batch size. The rectified linear unit (ReLU; \citealt{nair_2010}) then sets negative values to zero, which enables the network to learn nonlinear relationships. The final output, $F_6$, is the terrain summary used in the next subsection.
 
 \begin{figure}[!ht]
 \centering
@@ -198,11 +198,11 @@ with every $F_l \in \mathbb{R}^{32 \times H \times W}$. After each convolutional
 \end{figure}
 
 \subsubsection{Adjusting the terrain summary for the weather}
-\noindent The six convolutional layers produce 32 stacked feature maps, commonly called channels ($F_6$). Just as a digital color image has three channels (red, green, and blue), our terrain summary has 32 channels, where each channel is a 2D map of values produced by a different learned filter.
+\noindent The six convolutional layers produce 32 stacked feature maps (also called channels). The last layers (F6, the layers in stage 6 in Fig. \ref{fig:dilation_stages}), hold the terrain summary. Just as a digital color image has three channels (red, green, and blue), our terrain summary has 32 channels, where each channel is a 2D map of values produced by a different learned filter.
 
-Our model then uses the weather recorded during each flight to adjust these 32 maps. This adjustment accounts for the interaction between weather and terrain. The thermal effect of the landscape changes with atmospheric conditions: the cooling effect of a shadow is large on a hot, sunny, calm afternoon, but small on a cool or windy morning.
+Our model then uses the weather recorded during each flight to adjust the 32 F6 maps. This adjustment accounts for the interaction between weather and terrain, enabling the thermal effect of the landscape to change with atmospheric conditions. For example, the cooling effect of a shadow may be stronger on a hot, sunny, calm afternoon, but weaker on a cool or windy morning.
 
-To make these adjustments, we use feature-wise linear modulation (FiLM; \citealt{perez_2018}). A small auxiliary network (16 hidden units, about 2\% of all model parameters) reads the eight weather variables and calculates a scaling multiplier and an offset for each of the 32 channels. This enables the model to increase or decrease the influence of different terrain channels depending on weather conditions. The model starts training with neutral adjustments and learns from the data how strongly the weather should adjust each channel.
+To make these adjustments, we use feature-wise linear modulation (FiLM; \citealt{perez_2018}). In particular, a small auxiliary neural network (with 16 hidden units, about 2\% of all model parameters) reads the eight weather variables and calculates a scaling multiplier and an offset for each of the 32 channels. This enables the model to increase or decrease the influence of different terrain channels depending on weather conditions. The model starts training with neutral adjustments and learns from the data how strongly the weather should adjust each channel.
 
 \noindent Formally, this network maps the weather vector $M \in \mathbb{R}^8$ to a scale $\gamma \in \mathbb{R}^{32}$ and shift $\beta \in \mathbb{R}^{32}$ for each channel:
 \begin{equation}
@@ -257,7 +257,7 @@ where $W_1 \in \mathbb{R}^{64 \times 101}$ and $b_1 \in \mathbb{R}^{64}$ are the
 
 \subsection{The 1D surface energy-balance model}
 
-\noindent At each 15~cm pixel ($0.15$~m grid spacing), the baseline model estimates the ground surface (skin) temperature at the moment the drone acquired the thermal image. Following standard surface energy-balance formulations \citep{campbell_1998}, the model solves for the temperature at which incoming and outgoing energy fluxes balance instantaneously. Solar irradiance, atmospheric counter-radiation, and thermal emission from surrounding terrain and vegetation warm the surface. The surface loses heat by emitting longwave radiation, by warming the air through turbulent sensible heat flux, by evaporating water when moisture is available, and by conducting heat into the soil substrate. At each pixel, we solve by Newton--Raphson iteration for the ground skin temperature ($T_g$) at which these gains and losses balance:
+\noindent At each pixel, the baseline model estimates the ground temperature at the moment the drone acquired the thermal image. Following standard surface energy-balance formulations \citep{campbell_1998}, the model solves for the temperature at which incoming and outgoing energy fluxes balance. Solar irradiance, atmospheric counter-radiation, and thermal emission from surrounding terrain and vegetation warm the surface. The surface loses heat by emitting longwave radiation, by warming the air through turbulent sensible heat flux, by evaporating water when moisture is available, and by conducting heat into the soil substrate. At each pixel, we solve by Newton--Raphson iteration for the ground temperature ($T_g$) at which these gains and losses balance:
 \begin{equation} \label{eq:balance}
 S - L - H - E - G = 0\textrm{,}
 \end{equation}
@@ -271,7 +271,7 @@ The baseline equations follow \citet{Itzkovitch2025}. Where the code used for th
 \begin{equation} \label{eq:S}
 S = (1 - \alpha) \cdot \textrm{SWR}\textrm{,}
 \end{equation}
-\noindent where $\alpha$ is the surface shortwave albedo and $\textrm{SWR}$ ($\textrm{W m}^{-2}$) is the total incoming shortwave radiation at the pixel. We computed $\textrm{SWR}$ for every pixel from the drone-derived digital surface model (DSM) with the \textit{r.sun} module of GRASS GIS \citep{GRASS_GIS_software}, which resolves obstruction of the direct beam by relief, rocks, and shrubs. Shaded ground still receives diffuse skylight: 30--80~$\textrm{W m}^{-2}$ across our flights, compared with 200--1000~$\textrm{W m}^{-2}$ on sunlit ground. A separate binary shade raster delineates the microhabitats and reduces wind speed (see Sensible Heat), but it does not set the solar flux in Eq.~\ref{eq:S} to zero.
+\noindent where $\alpha$ is the surface shortwave albedo and $\textrm{SWR}$ ($\textrm{W m}^{-2}$) is the total incoming shortwave radiation at the pixel. We computed $\textrm{SWR}$ for every pixel from the drone-derived digital surface model (DSM) with the \textit{r.sun} module of GRASS GIS \citep{GRASS_GIS_software}, which resolves obstruction of the direct beam by relief, rocks, and shrubs. Shaded ground still receives diffuse skylight: 30--80~$\textrm{W m}^{-2}$ across our flights, compared with 200--1000~$\textrm{W m}^{-2}$ on sunlit ground. A separate binary shade map (see S1.2) was used to identify shaded areas and reduce wind speed (see Sensible Heat), but it does not set the solar flux in Eq.~\ref{eq:S} to zero.
 
 \subsubsection{Net longwave radiation}
 
@@ -285,7 +285,7 @@ L_{\textrm{ground}} = \sigma \epsilon_g T_g^4\textrm{,}
 \end{equation}
 \noindent and $\sigma = 5.67 \times 10^{-8}~\textrm{W m}^{-2}\textrm{ K}^{-4}$ is the Stefan--Boltzmann constant. 
 
-Downwelling atmospheric longwave radiation ($L_{\textrm{down}}$) arrives from both the clear atmosphere and cloud cover:
+To calculate $L_{\textrm{sky}}$, we first calculated the downwelling atmospheric longwave radiation ($L_{\textrm{down}}$) from both the clear atmosphere and cloud cover:
 \begin{equation} \label{eq:Ldown}
 L_{\textrm{down}} = \sigma \epsilon_{\textrm{sky}} T_{\textrm{ref}}^4 (1-\textrm{CLD}) + \sigma (T_{\textrm{ref}}-2)^4 \, \textrm{CLD}\textrm{,}
 \end{equation}
