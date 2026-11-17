@@ -402,7 +402,7 @@ C_H = \max \left( C_H, \; C_{H,\textrm{neutral}} \right)\textrm{.}
 
 \subsubsection{Coupled iterative solution}
 
-\noindent The two lateral mechanisms operate together: without the turbulent floor (Eq.~\ref{eq:floor}), stable stratification decouples the surface layer and prevents the warm advected air from transferring heat downward; without the advected air layer (Eq.~\ref{eq:anomaly}), enhanced mixing merely couples the shaded ground more tightly to the cooler background air ($T_{\textrm{ref}}$) \citep{mott_2013}.
+\noindent Warming the shadow margin requires both lateral mechanisms to operate simultaneously. Without the turbulent floor (Eq.~\ref{eq:floor}), stable stratification decouples the surface layer, preventing the warm advected air from transferring heat downward into the ground. Conversely, without the warm advected plume (Eq.~\ref{eq:anomaly}), enhanced mixing merely accelerates surface cooling by coupling the shaded ground to the cooler background air ($T_{\textrm{ref}}$) \citep{mott_2013}.
 
 Because warm air heats the surface and warmer surface temperatures in turn warm the air, $T_a$ and $T_g$ must be brought into mutual consistency. Within each $300$~s time step, the model solves this coupled system through a 20-pass iteration:
 \begin{enumerate}[label=(\arabic*), leftmargin=2em, itemsep=0.2ex]
