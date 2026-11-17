@@ -390,7 +390,7 @@ T_a = T_{\textrm{ref}} + \phi \left( T_{\textrm{air}} - T_{\textrm{air,uniform}}
 
 \noindent Standard 1D surface energy models (Section~S3.1.3; \citealt{Itzkovitch2025}) suppress turbulent mixing under stable atmospheric conditions, when the ground is cooler than the air ($T_g < T_a$). While this suppression applies over extensive cold surfaces such as snowfields or water bodies, it fails across narrow 1--2~m shaded patches. Air entering a shadow has just undergone intense convective mixing over the surrounding hot sunlit ground, and this turbulence does not dissipate during the 1--2~s required to cross the patch. Across such heterogeneous terrain, advection of turbulence from the surrounding matrix maintains near-neutral mixing over isolated cool patches \citep{helgason_2012}.
 
-We maintain this persistent mixing by imposing a neutral-stability floor ($C_{H,\textrm{neutral}}$) driven solely by surface roughness, where stability corrections vanish ($\psi_m = \psi_h = 0$):
+We maintain this persistent mixing by imposing a neutral-stability floor ($C_{H,\textrm{neutral}}$)---the baseline turbulent exchange that occurs when ground and air temperatures are equal ($T_g = T_a$), driven solely by surface roughness:
 \begin{equation} \label{eq:neutral}
 C_{H,\textrm{neutral}} = \frac{\kappa^2}{\left[ \ln \left( \frac{z + z_0}{z_0} \right) \right]^2}\textrm{.}
 \end{equation}
@@ -398,7 +398,7 @@ The effective bulk transfer coefficient is then bounded by this neutral baseline
 \begin{equation} \label{eq:floor}
 C_H = \max \left( C_H, \; C_{H,\textrm{neutral}} \right)\textrm{.}
 \end{equation}
-\noindent Over sunlit ground ($T_g > T_a$), thermal convection enhances $C_H$ above the neutral rate as usual. Over shaded ground ($T_g < T_a$), Eq.~\ref{eq:floor} clamps $C_H$ to $C_{H,\textrm{neutral}}$, preserving turbulent heat exchange. We apply the same neutral floor to the momentum transfer coefficient ($C_M = \max(C_M, C_{H,\textrm{neutral}})$), preventing friction velocity from collapsing in shade.
+\noindent Over sunlit ground ($T_g > T_a$), thermal convection enhances $C_H$ above this neutral baseline as usual. Over shaded ground ($T_g < T_a$), Eq.~\ref{eq:floor} clamps $C_H$ to $C_{H,\textrm{neutral}}$, preserving turbulent heat exchange instead of allowing it to collapse. We apply the same neutral floor to the momentum transfer coefficient ($C_M = \max(C_M, C_{H,\textrm{neutral}})$), preventing friction velocity from collapsing in shade.
 
 \subsubsection{Coupled iterative solution}
 
