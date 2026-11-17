@@ -10,10 +10,10 @@
 \usepackage{lineno}
 \renewcommand{\linenumberfont}{\normalfont\bfseries\small}
 %\linenumbers
-\usepackage{fontspec}
+%\usepackage{fontspec}
 \PassOptionsToPackage{hyphens}{url}\usepackage{hyperref}
 
-\setmainfont{Georgia}
+%\setmainfont{Georgia}
 \usepackage[utf8]{inputenc}
 \usepackage[letterpaper, margin=2cm]{geometry}
 \usepackage{soul}
@@ -134,15 +134,15 @@ Z_k = \frac{X_k - \mu_k}{\sigma_k},
 \end{equation}
 where $\mu_k$ and $\sigma_k$ are the mean and standard deviation of feature $k$ in the training set.
 
-The temperatures the model learns to predict are expressed relative to a local reference. Each thermal map is divided into sub-maps, and within each sub-map we compute the mean temperature of flat, exposed bare sand (pixels that are not shaded and have no object taller than 20~cm). For each sub-map $s$, this open-sand reference is $T_{\text{ref}}(s) = \overline{T_g}\,\big|\,\text{SHD}=0,\ H<0.20~\text{m}$ (falling back to all unshaded pixels, then to all valid pixels, if fewer than 50 or 10 pixels qualify). This reference temperature is subtracted from every target pixel prior to training:
+The model aims to predict the temperatures relative to a local reference, which is the mean temperature of flat, exposed bare sand (pixels that are not shaded and have no object taller than 20~cm). For each sub-map $s$, this open-sand reference is $T_{\text{ref}}(s) = \overline{T_g}\,\big|\,\text{SHD}=0,\ H<0.20~\text{m}$ (falling back to all unshaded pixels, then to all valid pixels, if fewer than 50 or 10 pixels qualify). This reference temperature is subtracted from every target pixel prior to training:
 \begin{equation}
 \tilde{T}_g^{\text{target}}(s) = T_g^{\text{target}}(s) - T_{\text{ref}}(s).
 \end{equation}
-The network therefore learns to predict how much warmer or cooler a location is relative to nearby open sand rather than the absolute temperature of the day. This removes flight-to-flight differences in overall temperature (such as a cool morning versus a hot afternoon) and lets the network focus entirely on the spatial contrast between sunlit and shaded ground.
+The network therefore learns to predict how much warmer or cooler a location is relative to nearby open sand rather than the actual temperature. This removes flight-to-flight differences in overall temperature (such as a cool morning versus a hot afternoon) and lets the network focus entirely on the spatial contrast between sunlit and shaded ground.
 
-\subsection{Network architecture (\texttt{FullResDilatedCNN})}
+\subsection{Network architecture}
 
-\noindent The architecture was designed to answer one question: how far away do rocks, shrubs and relief still influence the ground temperature at a given spot? To answer it, we trained the same model on map tiles of increasing size around the target pixel, from a single pixel up to a square $12.2$~m across. Each tile is a square centred on the target pixel, and the pixel size is 15~cm; the nine tile sizes are listed below.
+\noindent The architecture was designed to answer one question: how far away do rocks, shrubs and relief still influence the ground temperature at a given location? To answer it, we trained the same model on tiles of increasing size around a target pixel, from a tile with one pixel up to a tile of $12.2$~m across. Each tile is a square centered on the target pixel, and the pixel size is 15~cm; the nine tile sizes are:
 
 \begin{center}
 \begin{tabular}{lcc}
@@ -162,16 +162,18 @@ $81\times81$ & 12.15 & Largest neighbourhood \\
 \end{tabular}
 \end{center}
 
-A valid comparison across tile sizes requires that model capacity remains constant. In many image networks, covering a larger area requires additional layers or a larger dense layer after the feature maps are flattened \citep{simonyan_2015}, so the number of adjustable parameters grows with input size. If such a model performed better on larger tiles, it would be impossible to determine whether the wider landscape carried useful information or whether the larger model simply had more capacity to memorise the training data. We therefore designed the network to have the same number of parameters (55,729) at every tile size, so that any change in accuracy with tile size can be attributed to the landscape itself.
+A valid comparison across tile sizes requires keeping model capacity constant. In many image networks, however, covering a larger area requires additional or larger layers \citep{simonyan_2015}, so the number of adjustable parameters grows with input size. If such a model performed better on larger tiles, it would be impossible to determine whether the wider landscape carried useful information or whether the larger model simply had more capacity to memorise the training data. We therefore designed the network to have the same number of parameters (55,729) at every tile size, so that any change in accuracy with tile size can be attributed to the landscape itself.
 
-The network (\texttt{FullResDilatedCNN}) is a convolutional neural network that predicts the ground temperature of a single target pixel. Its inputs are a square tile of five map layers centred on the target pixel (object height, shade, solar radiation, skyview factor and vegetation greenness, TGI) and eight weather-station readings for the time of the flight (wind speed, wind direction, air temperature, relative humidity, dew point, air pressure, solar radiation and the ground temperature at the station; Table~1 in the main text). The five map layers are identical to those used by the physical model (Section S3), whereas the weather inputs overlap only partly: the physical model additionally requires albedo and soil temperature and moisture, which the network does not use. The network first converts the map tile into a summary of the terrain around every pixel of the tile. It then adjusts this summary according to the weather, extracts the summary at the target pixel together with tile-wide averages and maxima, and combines these into a single predicted temperature difference from the local open-sand reference. The following subsections describe each of these operations, which are illustrated in Fig.~3 of the main text.
+The network is a convolutional neural network (CNN) that predicts the ground temperature of a single target pixel. Its inputs are a square tile of five map layers centred on the target pixel (object height, shade, solar radiation, skyview factor and vegetation greenness, and TGI) and eight weather-station readings for the time of the flight (wind speed, wind direction, air temperature, relative humidity, dew point, air pressure, solar radiation and the ground temperature at the station; Table~1 in the main text). The five map layers are identical to those used by the physical model (Section S3), except albedo and soil temperature and moisture, which the CNN does not receive as input features. 
+
+During training, in general, the network first converts the map tile into a summary of the terrain around every pixel of the tile. It then adjusts this summary according to the weather, extracts the summary at the target pixel together with tile-wide averages and maxima, and combines these into a single predicted temperature difference from the local open-sand reference (Figure 3). The following subsections describe each of these operations.
 
 
 
 \subsubsection{Building the terrain summary (six filtering layers)}
-\noindent Six convolutional layers, applied in sequence, convert the five-layer input tile into a summary of the surrounding terrain. In each layer, a small window of learned weights (a filter) slides across the map. At each pixel, the filter combines the local values across all incoming maps into a single output value, producing one new feature map. Each of our layers applies 32 different filters simultaneously, yielding 32 feature maps (commonly called channels).
+\noindent Six convolutional layers, applied in sequence, convert each location (pixel) in the five-layer input tile into a summary of the surrounding terrain. In each layer, a small window of learned weights (a filter) slides across the map. At each pixel, the filter combines the local values across all incoming maps into a single output value, producing one new feature map. Each of our layers applies 32 different filters simultaneously, yielding 32 feature maps (commonly called channels).
 
-The first layer takes the five raw terrain maps as input and produces 32 feature maps. Each subsequent layer then takes those 32 maps as its input and applies another set of 32 filters. Stacking layers in this way allows the network to build hierarchical representations: early layers detect local features, while later layers combine these local summaries across wider distances to recognize broader spatial patterns, such as a shadow boundary extending away from a boulder. We maintained a width of 32 channels per layer to keep the model compact (55,729 parameters) and prevent it from simply memorizing the training tiles. Only the 32 final feature maps from the sixth layer are passed forward as the completed terrain summary.
+The first layer takes the five raw terrain maps as input and produces 32 feature maps. Each subsequent layer then takes those 32 maps as its input and applies another set of 32 filters. Stacking layers in this way allows the network to build hierarchical representations: early layers detect local features, while later layers combine these local summaries across wider distances to recognize broader spatial patterns, such as a shadow boundary extending away from a boulder (Fig.~\ref{fig:dilation_stages}). We maintained a width of 32 channels per layer to keep the model compact (55,729 parameters) and prevent it from simply memorizing the training tiles. Only the 32 final feature maps from the sixth layer are passed forward as the completed terrain summary.
 
 Two specific design choices distinguish this network from conventional image-classification networks \citep{simonyan_2015, he_2016}:
 
@@ -191,7 +193,7 @@ with every $F_l \in \mathbb{R}^{32 \times H \times W}$. After each convolutional
 \begin{figure}[!ht]
 \centering
 \includegraphics[width=\textwidth]{figure_dilation_padding_stages.png}
-\caption{An illustration of how dilated convolutions and temporary zero-padding work, using a $21\times21$ pixel tile (3.15~m wide) as an example. (Top row) The center pixel (red square). At each of the six stages, the filter reads nine positions whose spacing doubles ($1, 1, 2, 4, 8$, and $16$ pixels apart). Because each stage builds on the one before it, the area the center pixel sees grows from $3\times3$ pixels (0.45~m) at stage~1 to $65\times65$ pixels (9.75~m) at stage~6, bringing distant rocks and shrubs into view. At stages 5 and 6, the filter reaches beyond the tile boundary, reading zeros. (Bottom row) A pixel on the tile edge. To calculate edge pixels without shrinking the map, each stage adds a temporary border of zeros matching the filter spacing. After the layer finishes calculating, this border is removed, passing a map of the exact original size ($21\times21$ pixels) to the next stage.}
+\caption{An illustration of how dilated convolutions and temporary zero-padding work for the center pixel (top row) and for a pixel on the tile edge (bottom row), using a $21\times21$ pixel tile (3.15~m wide) as an example. At each of the six stages, the filter reads nine positions whose spacing doubles from each stage to the next ($1, 1, 2, 4, 8$, and $16$ pixels apart). The filter is repeated at every pixel, generating a new map that is fed to the next stage. Each pixel in the new map holds information from the sampled pixels (dashed boxes). Because each stage builds on the one before it, the area the center pixel sees grows from $3\times3$ pixels (0.45~m) at stage~1 to $65\times65$ pixels (9.75~m) at stage~6, bringing distant rocks and shrubs into view. At stages 5 and 6, the filter reaches beyond the tile boundary, reading zeros. To calculate edge pixels without shrinking the map, each stage adds a temporary border of zeros matching the filter spacing. After the layer finishes calculating, this border is removed, passing a map of the exact original size ($21\times21$ pixels) to the next stage.}
 \label{fig:dilation_stages}
 \end{figure}
 
