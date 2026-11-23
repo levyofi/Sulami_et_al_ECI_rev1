@@ -1,0 +1,636 @@
+\documentclass[12pt,english]{reviewresponse}
+
+%% Language and typography
+\usepackage{babel}
+\usepackage[babel]{microtype}
+\usepackage[babel]{csquotes}
+
+%% Fonts and symbols
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{amsmath,amssymb}
+\usepackage{gensymb}
+\usepackage{enumitem}
+
+%% Hyperlinks
+\PassOptionsToPackage{hyphens}{url}
+\usepackage{hyperref}
+\usepackage{xurl}
+\hypersetup{
+    colorlinks=true,
+    linkcolor=colorcommentframe,
+    citecolor=colorcommentframe,
+    urlcolor=colorcommentframe
+}
+
+\journal{Ecological Informatics}
+\manuscript{ECOINF-D-XX-XXXXX}
+\title{Deep Learning and Energy-Balance Modeling Reveal How Surrounding Terrain and Lateral Heat Exchange Shape Desert Ground Temperatures}
+\author{Idan Sulami, Alon Itzkovitch, Michael R. Kearney, Moni Shahar, and Ofir Levy}
+
+\begin{document}
+
+\begin{titlepage}
+\begin{center}
+    \vspace*{1cm}
+    \large{Point-by-Point Responses to Reviewers' Comments}\\
+    \vspace{0.5cm}
+    \textbf{\LARGE{Deep Learning and Energy-Balance Modeling Reveal How Surrounding Terrain and Lateral Heat Exchange Shape Desert Ground Temperatures}}\\
+    \vspace{1cm}
+    \large{Submitted for Publication in}\\
+    \Large{\textbf{Ecological Informatics}}\\
+    \vspace{1cm}
+    \large{Authors:}\\
+    \large{Idan Sulami, Alon Itzkovitch, Michael R. Kearney, Moni Shahar, and Ofir Levy}
+\end{center}
+\end{titlepage}
+
+\clearpage
+
+\section*{Overview of Manuscript Revision}
+
+We thank the Editor and all five Reviewers for their comments. We revised the study to distinguish the predictive value of neighboring terrain from evidence about physical heat exchange. We summarize the main changes below; all line references refer to the revised manuscript.
+\begin{itemize}[leftmargin=*, itemsep=0.2em]
+    \item \textbf{Fixed architecture and parameter count (Section~2.4, lines 183--224, Fig.~3; Supplementary Section~S2, Fig.~S3)}: We replaced ResNet-18 with a six-layer dilated convolutional neural network (CNN) that preserves the 15~cm grid. We used feature-wise linear modulation (FiLM) layers to adjust spatial features according to flight weather. The architecture keeps 55,729 parameters fixed across all tile widths ($0.15\text{--}12.15$~m), and we trained models at each width with three random seeds.
+    \item \textbf{Diurnal scaling and plateau threshold (Section~2.6, lines 295--341; Section~3.1, lines 396--427, Fig.~5; Supplementary Table~S2)}: We added analyses of how prediction error changes with tile width and time of day, referencing temperatures to flat open sand ($\Delta T_g$). Relative to the single-pixel baseline, a $4.65$~m square tile ($2.33$~m half-width) reduced midday shaded-ground MSE by \textbf{58.9\%}, roughly three times the relative reduction in open sand. We estimated a plateau tile width of \textbf{2.18~m} (95\% CI: $1.73\text{--}2.70$~m; half-widths of $0.9\text{--}1.4$~m). Morning and evening gains were confined to shaded ground at the widest tiles; open-sand error did not decrease.
+    \item \textbf{Physical models with and without lateral exchange (Section~2.5, lines 252--294, Fig.~4; Section~3.3, lines 457--485, Fig.~7; Supplementary Section~S3, Fig.~S5, Table~S5)}: We added a comparison of physical models with and without lateral heat exchange evaluated on the exact same 30\% terrain-stratified test blocks and pixels as the CNN ($N = 50$ open and $47$ shaded submaps). Drone maps showed midday shaded bare ground an average of $3.4^\circ$C cooler than flat sunlit sand, whereas the 1D baseline predicted an average difference of $5.0^\circ$C. Adding warm-air advection and a minimum level of turbulent mixing reduced estimated shaded-ground MSE by \textbf{54.9\%} (lower in 41 of 47 shaded submaps), with no statistically significant change on open sand.
+    \item \textbf{Input shuffling and network component ablations (Section~2.4, lines 241--251; Section~3.2, lines 428--456, Fig.~6; Supplementary Fig.~S4, Table~S3)}: We shuffled solar radiation, skyview factor, shade, and obstacle height individually and observed increased midday error, whereas shuffling TGI did not significantly change error. Removing the tile-wide average and maximum summaries reduced accuracy on wider tiles, whereas disabling FiLM or setting all eight weather inputs to zero did not increase open-ground-centered midday MSE.
+    \item \textbf{Non-overlapping spatial blocking and site calibration (Section~2.2, lines 95--129; Section~2.3, lines 156--170; Supplementary Figs.~S1--S2, Table~S1)}: We divided the site into non-overlapping $50\times 50$~m training, validation, and test blocks, keeping target pixels at least $6.58$~m inside each block border. We evaluated all nine tile widths on the same target locations and reserved 10 flights from three independent field days for testing.
+\end{itemize}
+\clearpage
+
+% ==============================================================================
+% REVIEWER 1
+% ==============================================================================
+\reviewer
+
+\section*{General Comments}
+
+\begin{generalcomment}
+This study combines drone-derived RGB and thermal imagery, meteorological time series, maps of land surface features and deep learning to explore how local ground surface temperature is influenced not only by local surface properties but also by the properties of the neighborhood. The authors tackle an important problem in current mechanistic microclimate models, that largely ignore lateral heat transfer and thus the influence of the surrounding. From what I can judge, this study is relevant, timely and novel. However, I have some questions and suggestions to the author that hopefully will improve the paper. Importantly, I dont have expertise in machine learning and cannot comment on this part.
+\end{generalcomment}
+
+\begin{revresponse}
+We thank Reviewer~\#1 for these suggestions. We added a physical-model comparison with and without lateral exchange, clarified our bare-ground temperature target, and moved predictor details into the main text.
+\end{revresponse}
+
+\subsection*{Major Comments}
+
+\begin{revcomment}
+1. You repeatedly say that mechanistic microclimate models do not capture lateral heat transfer. Why did you not start with such a model and then see if your deep learning algorithms and neighborhood information can improve the models? Now you build your own very simple microclimate model and prove neighbourhood effects but I argue that some of them (mainly the solar radiation effects you describe in the discussion) would have been perfectly captured with a mechanistic model such as NicheMapR (Kearney \& Porter, 2017) or microclimf (Maclean, 2026)
+\end{revcomment}
+
+\begin{revresponse}
+We agree that terrain shading and sky exposure are already represented in mechanistic microclimate models, and that benchmarking against established packages such as \textit{NicheMapR} or \textit{microclimf} would help assess practical prediction performance. In the Introduction (lines 51--65), we now separate those radiative effects from lateral air exchange. To isolate the added lateral heat-exchange terms without confounding them with differing soil, canopy, and radiation parameterizations across separate packages, we compared the 1D model of Itzkovitch et al.\ (2026) with a coupled 2D version sharing identical radiation, shading, and soil equations (Sections~2.5 and 3.3, lines 252--294, 457--485; Discussion, lines 487--553; Table~1). Adding those lateral terms reduced shaded-ground error and cold bias (Section~3.3, lines 458--479); we do not claim that our physical model outperforms \textit{NicheMapR} or \textit{microclimf}.
+\end{revresponse}
+
+\begin{revcomment}
+2. Define clearly in the intro what you mean by microclimate. It took me a while to figure out that you hop between air temperature with ground surface temperature. While those two may be closely related in desert landscapes, this is not always the case in other ecosystems.
+\end{revcomment}
+
+\begin{revresponse}
+We defined our target in the Introduction (lines 43--45) and Section~2.2 (lines 105--107) as \textbf{bare ground surface skin temperature ($T_g$, $^\circ\mathrm{C}$)}. We clarified the temperature definitions in Section~2.5 (lines 261--292), distinguishing ground surface temperature ($T_g$), near-surface air temperature ($T_a$), and the undisturbed reference canopy-air temperature ($T_{\text{ref}}$; with 1.2~m station air temperature $T_{\text{station}}$ and derived obstacle/canopy-air forcing inputs detailed in Table~1 and Supplementary Section~S3.1). We also explain in Section~4.4 (lines 612--616) that dense canopies can decouple ground and air temperatures.
+\end{revresponse}
+
+\begin{revcomment}
+3. I know you are not aiming for a full explanation of the physical mechanisms but please try to explain in the intro a bit more in depth, what lateral heat transfer mechanisms you mean. Give 1-2 examples that actually matters in your system (e.g. a vertical rock wall that radiates heat or so)
+\end{revcomment}
+
+\begin{revresponse}
+We describe warm-air advection from sunlit sand into adjacent shade and sustained turbulent mixing above cool patches in the Introduction (lines 58--65). We also describe longwave emission and reflection from surrounding rocks and shrubs ($L_{\text{obstacles}}$) in Supplementary Eqs.~S16 and S20.
+\end{revresponse}
+
+\begin{revcomment}
+4. Clearly state your hypothesis at the end of the intro
+\end{revcomment}
+
+\begin{revresponse}
+We added numbered Hypotheses (1) and (2) at the end of the Introduction (lines 82--85) and linked them to their statistical tests in Section~2.6 (lines 296, 355).
+\end{revresponse}
+
+\begin{revcomment}
+5. What makes you believe that the influencing neighborhood is symmetric (and not e.g. skewed towards main wind direction or so)? What makes you believe it is square? (and not round?). These assumptions could at least be discussed.
+\end{revcomment}
+
+\begin{revresponse}
+We agree that heat transport can be directional and that circular or wind-aligned windows would be informative comparisons. We retained square input windows to compare increasing areas on the same raster grid without altering the CNN architecture; a square input defines the available neighborhood without requiring the learned filters to weight all directions equally. We did not test circular or wind-aligned CNN windows and now discuss this distinction and identify those comparisons as future work in Section~4.4 (lines 592--596). In our 2D physical model, advection follows the measured wind direction explicitly (Section~2.5, lines 271--292; Supplementary Fig.~S5).
+\end{revresponse}
+
+\begin{revcomment}
+6. I would move Supplementary material S1 (how land surface feature maps where created) and Table S1 into the main text. This is important information and the text is not too long, especially when you shorten the repetitions as I suggest
+\end{revcomment}
+
+\begin{revresponse}
+We agree that readers need to understand the predictor maps directly in the main text. We moved the input summary into \textbf{Table~1} and added descriptions of all five 15~cm spatial predictors and their derivation from the 3~cm Pix4D products in Section~2.3 (lines 131--155). We retained the full derivation equations in Supplementary Section~S1 so that the main Methods presents the workflow clearly without interrupting it with every formula.
+\end{revresponse}
+
+\subsection*{Minor Comments}
+
+\begin{revcomment}
+L45-46 too general. Skip\\
+L70-72 discussion-type sentence. Skip (as this is already said repeatedly in the discussion)\\
+L75-83 "2.1. General Approach" => largely repeats last paragraph of intro. Skip.\\
+L86 slightly complicated sentence "We conducted field data collection to measure…" what about "We measured…"?
+\end{revcomment}
+
+\begin{revresponse}
+We agree that the original overview repeated introductory text and that the site description should appear early. We removed the general opening lines (including original line 46) and the concluding discussion sentence from the Introduction, and we shortened Section~2.1 (lines 87--94) while keeping a brief workflow overview referencing Figure~1 to introduce the linked CNN and physical-model analyses. Section~2.2 now opens with the study site, and we simplified its opening sentence to \textit{``We collected field data...''} (line 96).
+\end{revresponse}
+
+\begin{revcomment}
+Fig. 1. "d" missing in "Maps Standarization"\\
+L94 I would start the methods section with this paragraph on study site\\
+L100 so if that was your primary study location, which was your secondary?\\
+L108 I suggest to move these details (Table S1) into main text
+\end{revcomment}
+
+\begin{revresponse}
+We corrected the spelling in Figure~1 and removed ``primary'' from the site description (line 99). We placed \textit{Study site} at the start of Section~2.2 (lines 96--104), immediately after the brief workflow overview in Section~2.1 (lines 87--94), and moved the input summary into \textbf{Table~1}.
+\end{revresponse}
+
+\begin{revcomment}
+L110 5°C accuracy is quite a big error. Isnt that worth discussing later under limitations?\\
+L116-117 skip. Unnecessary details\\
+L123 How exactly did you calibrate the thermal images? See, eg. (Metsu et al., 2026)
+\end{revcomment}
+
+\begin{revresponse}
+We agree that frame-level radiometric processing can help address drift and acquisition effects, and we now cite Metsu et al.\ (2026) in Section~4.4 (lines 601--606). Because our analysis focuses on within-submap temperature contrasts, we retained the additive station correction and open-ground-centered evaluation and did not reprocess the 2019--2021 orthomosaics through \textit{theRmalUAV}. We removed the flight-software and SD-card details, documented the additive offset correction in Section~2.2 (lines 111--116; Supplementary Fig.~S2), and explicitly acknowledged in Section~4.4 (lines 601--606) that centering removes uniform offsets but does not correct spatial emissivity differences or within-flight drift.
+\end{revresponse}
+
+\begin{revcomment}
+L139 I find the word "feature maps" a bit confusing. What about "predictor maps" or "land surface feature maps" - that describes a bit more concretely what they are\\
+L142 I thought a matrix has only two dimensions, if you add a third one its an array?\\
+L143 can you explain why you standardized the maps? Did you standardize temperature from the thermal images, too?\\
+L163 here and elsewhere: better using "surface temperature" and not "microclimate temperature"\\
+Fig. 2 "…at different spatial scales" => better "… at different spatial extends" - that describes more accurately what you did, otherwise the reader could think you change resolution (grain size)
+\end{revcomment}
+
+\begin{revresponse}
+We renamed inputs to \textbf{spatial predictor maps} throughout the text (lines 131--182) and deleted the ``matrix'' phrase. We standardized the predictors using training-set means and standard deviations because their numerical scales differ substantially (Section~2.3, lines 177--182; Supplementary Section~S2.1). We centered temperature targets on open ground and kept them in degrees~C ($\Delta T_g$) rather than $z$-scoring them. We use ground surface temperature ($T_g$) consistently and updated Figure~2 to display tile width in meters ($1.35\text{--}9.45$~m).
+\end{revresponse}
+
+\begin{revcomment}
+L200 why not Root Mean Square Error? (which would avoid the funky unit °C2\\
+L202 why? Not motivated in intro\\
+L203 only here we get to know that you model bare ground temperature, not air temperature and not surface temperature including vegetation\\
+L206 no clear hypotheses stated\\
+L218-219 this needs to come earlier, what the features/predictors represent\\
+L219-220 reads random, why SD of slope? Why 2 m? motivate or refer to other studies that did like that.
+\end{revcomment}
+
+\begin{revresponse}
+We agree that RMSE is easier to read in degrees Celsius. We retained MSE as the primary metric because it can be compared directly against within-submap spatial temperature variance, both expressed in $^{\circ}\mathrm{C}^2$; we added the observed temperature ranges and variances at the opening of Section~3 (Results; lines 381--395) and also report physical-model mean bias in degrees Celsius (Supplementary Table~S5). We explicitly defined bare-ground $T_g$ and stated both hypotheses in the Introduction (lines 43--45, 82--85). We also described all predictors in Section~2.3 (lines 142--155) and the exclusion of vegetated evaluation targets ($\text{TGI} > 0.04$) in Section~2.2 (lines 116--117), and we replaced the 20-point slope-SD analysis with shuffling one input map at a time within each test submap (Section~3.2, lines 428--456).
+\end{revresponse}
+
+\begin{revcomment}
+L236 Maybe start results by roughly describing the temperature variation you recorded in the landscape (with the drone) - that helps us readers to put the model errors into context, e.g. if temperatures vary by 2 degree and the error is 3 degree\\
+L238 refer to Fig. 5 here?\\
+Fig. 5 X-axis label "Tile Size (pixels)" => maybe translate here also into cm or m\\
+In figure caption of Fig. 5 and 6, don't write "with increased spatial resolution" because that is wrong, write spatial extend which describes the size of the tile
+\end{revcomment}
+
+\begin{revresponse}
+We added drone-measured bare-ground temperature ranges and variances for open sand and shaded ground across times of day to the opening of Section~3 (Results; lines 381--395). We then introduce Figure~5 (line 399) to place the prediction errors in that context. We updated Figures~5, 6, and Supplementary Fig.~S4 to display \textbf{Tile Width (m)} on the x-axis and removed ``spatial resolution'' from all captions.
+\end{revresponse}
+
+\begin{revcomment}
+L298-303 The shade effects you describe here should be captured by the solar radiation feature layer, and is therefore technically a horizontal heat transfer mechanism. I would consider moving air as a horizontal heat transfer mechanism, for example when cold heavy air drains into depressions. This part of the discussion needs a bit more flesh. Considering that you claim to improve mechanistic models, you shouldn't claim things that those models solve as your achievement.\\
+L337 be concrete, give examples\\
+L341 what spatial data? Be concrete… vegetation, elevation, soil type, soil moisture….\\
+L415 and beyond: The conclusion does repeat only things already said. You can skip it completely (saving some space for important model details).
+\end{revcomment}
+
+\begin{revresponse}
+We separated DSM radiative shading from horizontal air advection and turbulent mixing across shadow margins in Sections~4.1--4.2 (lines 487--553), and we specified concrete inputs and parameters ($z_0, L_g, L_e, \phi$ in Section~4.4, lines 578--582, and albedo, soil texture, and soil moisture in Table~1 and Section~2.2, lines 125--126). We agree that the Conclusions should not repeat the Discussion; we retained one concise paragraph (lines 617--629) limited to our main numerical result, its implication for isolated desert shade patches, and the study's scope.
+\end{revresponse}
+
+\clearpage
+
+% ==============================================================================
+% REVIEWER 2
+% ==============================================================================
+\reviewer
+
+\section*{General Comments}
+
+\begin{generalcomment}
+This manuscript combines drone-based remote sensing with deep learning to investigate how spatial context affects microclimate ground-temperature prediction. By varying tile size, this study treats the change in prediction error with increasing input extent as a diagnostic of spatial scale and identifies a feature scale of approximately 5–7 m. This idea has some novelty, the multi-temporal drone dataset is valuable, and the topic fits the scope of the journal.
+
+However, the current experimental design does not support interpreting the saturation of prediction error as the physical scale of lateral heat transfer and radiative exchange. The key analysis is influenced by changes in network capacity, the non-local relationship of several input features, spatial autocorrelation in the temperature field, and the lack of spatial independence between training and test data. Necessary baselines, ablation studies, and spatially independent validation are also missing. The current evidence shows only that broader neighborhood information improves the prediction of within-map temperature anomalies; it does not adequately support the manuscript's main physical and ecological conclusions. Because addressing these issues would require a substantial redesign and reanalysis of the core experiments, I recommend rejection.
+\end{generalcomment}
+
+\begin{revresponse}
+We thank Reviewer~\#2 for identifying these design limitations. We revised the architecture, validation split, baselines, input tests, and target definition, as summarized in the Overview. Below, we distinguish what these changes establish from the remaining limits of the study.
+\end{revresponse}
+
+\subsection*{Detailed Responses to Numbered Comments}
+
+\begin{revcomment}
+1. The flattened feature dimension increases from 512 to 4608 across tile sizes, meaning that the parameter count and representation capacity of the model also increase with tile size. In addition, the initial convolution and pooling layers of ResNet-18 are not suited to very small inputs such as 5×5 tiles, which retain little meaningful spatial structure after downsampling. The observed improvement with increasing tile size may reflect both increased model capacity and structural disadvantages for small inputs, rather than a larger physical context. The authors should conduct capacity-controlled experiments in which the network architecture and parameter count remain fixed while only the effective spatial extent is changed, for example by using a common input size and prediction head with masked outer regions or concentric-context inputs.
+\end{revcomment}
+
+\begin{revresponse}
+We designed a six-layer dilated CNN that keeps 55,729 parameters fixed across every tile width from $1\times 1$ to $81\times 81$ pixels (Section~2.4, lines 183--214; Supplementary Eqs.~S7--S13, Fig.~S3). We preserved tile dimensions through all six convolutional layers without pooling or downsampling, padded filter positions outside each tile with zeros, and passed the five original standardized center-pixel predictors straight to the final network. This preserves direct local information while removing the original confounding effect of increasing model capacity.
+\end{revresponse}
+
+\begin{revcomment}
+2. The value of a single pixel in feature layers such as shade and sky-view factor is already obtained from terrain and obstruction information over a much broader surrounding area. So even the smallest tile may contain feature values that encode spatial context beyond its physical boundary. Tile width therefore cannot be treated directly as the spatial range of information used by the model, and as the physical range of heat transfer. A 5–7 m process scale has no evidence.
+\end{revcomment}
+
+\begin{revresponse}
+We agree that the focal pixel's ray-traced solar radiation, shade, and skyview values already summarize surrounding terrain beyond a single pixel, so the $1\times 1$ baseline is not spatially context-free. Rather, tile width measures the additional neighboring raster cells supplied to the CNN, not the total spatial support of its predictors or a direct heat-transfer distance. Including those focal predictors in the $1\times 1$ baseline (lines 174--175, 200--201, 208--209) isolates the predictive gain from adding neighboring pixels. We added a formal plateau analysis in Sections~2.6 and 3.1 (lines 316--341, 416--427): we fitted a quadratic-plateau GLMM and estimated that midday shaded-ground error leveled off at a tile width of $X_0 = 2.18$~m (95\% CI: $1.73\text{--}2.70$~m; half-widths of $0.9\text{--}1.4$~m; lines 420--422). In Discussion Sections~4.2 and 4.4 (lines 539--546, 570--577), we treat this plateau as the input extent beyond which larger tiles add little accuracy, while we test horizontal heat transport separately by comparing physical models with and without lateral exchange (Section~3.3).
+\end{revresponse}
+
+\begin{revcomment}
+3. The manuscript compares only ResNet models trained with different tile sizes. Authors should provide baseline results, such as simple regression or conventional spatial models and alternative CV architectures to determine whether deep learning offers a genuine advantage and whether the inferred saturation scale is specific to ResNet-18.
+\end{revcomment}
+
+\begin{revresponse}
+We recognize that benchmarking Random Forest, linear regression, or alternative neural architectures would help determine whether this CNN outperforms simpler models and whether the estimated plateau depends on model choice. In this revision, we focused on isolating the added value of neighboring raster cells within one architecture whose parameter count stays fixed across tile widths. We therefore replaced ResNet-18 with a fixed-capacity dilated CNN, added a single-pixel ($1\times 1$) CNN baseline using local predictors and flight weather (Section~2.4, lines 183--214; Supplementary Section~S2), and added a controlled comparison between 1D and 2D physical models (Section~3.3, lines 457--485). We did not benchmark separate conventional regressors or alternative CNN architectures, and accordingly we do not claim that this architecture is required or that the estimated plateau is architecture-independent.
+\end{revresponse}
+
+\begin{revcomment}
+4. The model uses five spatial channels and eight meteorological variables without any input ablation, making it impossible to determine which variables drive the improvement. This is particularly important for the meteorological variables, which are constant in all tiles within a map while the target has already been centered by map.
+\end{revcomment}
+
+\begin{revresponse}
+We shuffled each of the five spatial layers separately and tested all eight weather variables jointly by disabling FiLM or setting all weather inputs to zero (Section~3.2, lines 428--456; Fig.~6; Supplementary Fig.~S4 and Table~S3). Shuffling solar radiation, skyview factor, shade, or obstacle height increased error, whereas shuffling TGI did not significantly change error. Because the spatial layers are correlated, these tests measure the trained CNN's reliance on each input rather than independent physical contributions. Neither weather modification increased open-ground-centered MSE on the held-out midday flights (Section~3.2, lines 450--456; Supplementary Section~S2.3).
+\end{revresponse}
+
+\begin{revcomment}
+5. Even no lateral heat transfer appears, a ground-temperature field with a spatial autocorrelation range of approximately 5–7 m could cause any neighborhood-based model to saturate at a similar scale. The current analysis does not distinguish a predictive context scale from the spatial scale of a specific heat-transfer process.
+\end{revcomment}
+
+\begin{revresponse}
+We agree that wider CNN tiles alone cannot separate lateral heat transport from spatial autocorrelation in the thermal field and correlated terrain signals, and our surveys did not include direct lateral heat-flux measurements. We therefore revised the CNN plateau interpretation to a predictive input threshold in Discussion Section~4.4 (lines 570--577) and added the 1D-versus-2D physical-model comparison as separate, model-based evidence (Sections~2.5 and 3.3, lines 252--294, 457--485), where adding warm-air advection and mixing reduced shaded-ground error and cold bias. As noted in Section~4.4 (lines 575--577), direct validation still requires field measurements across shade margins.
+\end{revresponse}
+
+\begin{revcomment}
+6. Each thermal map is centered by subtracting its own mean, so the model learns within-map temperature anomalies rather than complete absolute ground temperatures. MSE=1.58°C² represents error in the anomaly field and should not be compared directly with the error of an absolute-temperature model. The proposed model may not independently produce absolute temperatures when the test temperature is unknown.
+\end{revcomment}
+
+\begin{revresponse}
+We trained the CNN to predict temperature differences relative to open bare sand ($\Delta T_g$; lines 105--117, 178--182, 225--240, Eq.~2), and we explicitly note in Section~4.4 (lines 587--592) that predicting absolute temperatures at new sites requires an external open-ground reference. In Supplementary Section~S2.3, we added an explanation of the uniform scene-wide prediction shifts: test flights with wind directions of $252\text{--}354^\circ$ lay outside the training range of $10\text{--}199^\circ$ and showed uniform shifts of $2.1\text{--}3.2^\circ\mathrm{C}$ because wind direction was entered as a single angle rather than sine and cosine components. For the physical models, we report both centered and raw uncentered errors (Section~3.3, lines 475--479; Supplementary Table~S5).
+\end{revresponse}
+
+\begin{revcomment}
+7. The effects for differences among microhabitats and dayparts are approximately 0.15–0.37°C², while the best model MSE=1.58°C². Map-wise centering cannot remove relative and spatial error such as pixel-level noise and resampling artifacts. Because error have not been characterized, it is difficult to determine whether the reported small effects represent physical signals or measurement and processing noise.
+\end{revcomment}
+
+\begin{revresponse}
+We agree that spatially structured thermal-measurement errors could affect the inferred gains and should be characterized independently. We have not independently quantified pixel-level thermal uncertainty or decomposed emissivity, viewing-angle, mosaicking, and drift components. In the revised analysis, the midday shaded-ground reduction is substantially larger than originally reported: MSE fell from $5.56$ to $2.28^{\circ}\mathrm{C}^2$ ($-58.9\%$) for a $4.65$~m square tile (Section~3.1, lines 404--407). Although these reductions were consistent across held-out submaps, they do not independently validate the thermal imagery or exclude spatially structured measurement error; we now state these limitations in Section~4.4 (lines 601--606) and discuss within-flight temperature change for the low-sun results in Section~4.1 (lines 507--511).
+\end{revresponse}
+
+\begin{revcomment}
+8. The training and test sets are mainly from the same study site. Terrain-derived features may overlap strongly between the two sets. The current test primarily evaluates generalization across dates or weather conditions rather than across space. In addition, the training and validation sets contain highly overlapping tiles, which may produce overly optimistic validation loss and model selection.
+\end{revcomment}
+
+\begin{revresponse}
+We clarified the CNN spatial and flight splits in Section~2.3 (lines 156--170). We assigned non-overlapping $50\times 50$~m blocks to training (55\%), validation (15\%), and testing (30\%), keeping target pixels at least $6.58$~m inside each block border. We trained and validated on the corresponding blocks from 23 flights, then evaluated on the held-out test blocks from 10 flights collected on three independent field days excluded from training.
+\end{revresponse}
+
+\begin{revcomment}
+9. The current evidence supports only the conclusion that neighborhood environmental information improves the prediction of central-pixel temperature anomalies, but it does not mean that the observed convergence in model performance corresponds to the true physical distance over which lateral heat transfer or radiative exchange operates. The statement that “spatial coupling shapes ecological thermal niches” is also too strong because the study includes no organismal observations, physiological models, thermal-niche calculations, species responses, or habitat-selection data.
+\end{revcomment}
+
+\begin{revresponse}
+We removed thermal-niche claims from the Highlights and manuscript, qualified CNN scale interpretations as predictive input extents rather than direct heat-transfer distances (Sections~4.2 and 4.4, lines 539--546, 570--577), and evaluated horizontal heat exchange separately via our 2D energy-balance model (Sections~2.5 and 3.3, lines 252--294, 457--485).
+\end{revresponse}
+
+\clearpage
+
+% ==============================================================================
+% REVIEWER 3
+% ==============================================================================
+\reviewer
+
+\section*{General Comments}
+
+\begin{generalcomment}
+This manuscript presents a deep learning framework for predicting fine-scale ground temperature from drone-derived spatial layers and meteorological variables. The central idea is to train separate models using progressively larger spatial input windows and then interpret changes in predictive accuracy as evidence of the spatial scale over which surrounding environmental conditions influence local microclimates. The topic is potentially relevant to Ecological Informatics, and the use of high-resolution drone imagery for microclimate modelling is interesting. However, I do not believe that the present study provides sufficient methodological rigour or empirical evidence to support its principal scientific claims. The manuscript primarily demonstrates that increasing the spatial input supplied to a neural network improves prediction performance. It does not convincingly establish that the resulting performance curve measures horizontal heat transfer, radiative interactions or a characteristic physical scale of microclimate formation.
+\end{generalcomment}
+
+\begin{revresponse}
+We thank Reviewer~\#3 for this critique. We redesigned the predictive experiment, added a physical-model comparison, and expanded statistical reporting. Below, we explain these changes and the remaining limits of the thermal reference and single-site evaluation.
+\end{revresponse}
+
+\subsection*{Detailed Responses to Specific Comments}
+
+\begin{revcomment}
+1. The most fundamental problem is the interpretation of the results. The authors argue that diminishing predictive gains beyond approximately 5-7 m reveal the spatial extent of lateral heat and radiative transfer. This conclusion is stated prominently in the abstract and subsequently treated as a physical finding. However, the experiment only demonstrates that environmental covariates within larger windows contain additional predictive information about the temperature at the centre of those windows. Such information could arise from spatial autocorrelation, repeated terrain patterns, shading geometry, habitat structure, acquisition artefacts or other correlated environmental processes. Improved prediction does not by itself establish a particular heat-transfer mechanism. The manuscript later acknowledges that varying tile size provides only indirect information and cannot disentangle shortwave reflection, longwave radiative exchange or lateral heat transport. This limitation is incompatible with the much stronger mechanistic claims made throughout the abstract, discussion and conclusions.
+
+Relatedly, the Results section contains no substantive empirical analysis of microclimatic processes beyond model performance. The reported findings consist mainly of changes in mean squared error across tile sizes, followed by GAMM analyses of prediction errors across dayparts, microhabitats and environmental variables. There are no direct measurements of lateral heat flux, directional radiative exchange, heat propagation between neighbouring microhabitats or observed spatial transfer distances. Nor is the neural network compared with a physically based microclimate model with and without horizontal-exchange terms. The statistical analyses therefore explain where and when the model performs differently, but they do not validate the physical interpretation assigned to those differences. Describing the changing input window as a "physical probe" and claiming that the error curve physically maps the limits of heat transfer is not justified by the presented evidence.
+\end{revcomment}
+
+\begin{revresponse}
+We agree that improved CNN predictions alone cannot separate lateral heat transport from spatial autocorrelation and correlated terrain signals, and our surveys did not include direct lateral heat-flux measurements. We removed ``physical probe'' and now treat the CNN plateau strictly as a predictive input threshold rather than a measured heat-transfer distance (Section~4.4, lines 570--577). As separate, model-based evidence, we added input shuffling within test submaps and a controlled comparison of physical models with and without lateral exchange (Sections~2.5 and 3.2--3.3, lines 252--294, 428--485; Supplementary Fig.~S5). We note in Section~4.4 (lines 575--577) that direct validation of lateral fluxes still requires field measurements across shade margins.
+\end{revresponse}
+
+\begin{revcomment}
+2. The model design also contains an important confounding factor. Input tile size changes not only the physical spatial extent supplied to the model but also the dimensionality of the learned representation. The manuscript states that the flattened features increase from 512 to 2,048 and then 4,608 depending on tile size before being reduced through a fully connected layer. Consequently, larger-window models may have substantially different parameter counts and representational capacity. The reported performance improvement cannot therefore be attributed solely to the inclusion of broader spatial context. A valid experiment would require a constant-capacity architecture, such as adaptive pooling, or carefully parameter-matched control models. The manuscript does not report model parameter counts, repeated training runs or uncertainty associated with random initialisation. These are not minor implementation details because the entire scientific argument depends on interpreting differences between models as effects of spatial scale.
+\end{revcomment}
+
+\begin{revresponse}
+We kept 55,729 parameters fixed across all tile widths ($0.15\text{--}12.15$~m; Section~2.4, lines 183--214; Supplementary Eqs.~S7--S13). We trained a model for each tile width with three random seeds (lines 223--224) and added the cross-seed standard deviation to Section~3.1 (lines 413--415), where it was about an order of magnitude smaller than the midday shaded-ground reduction in MSE.
+\end{revresponse}
+
+\begin{revcomment}
+3. The absence of an appropriate baseline further weakens the experimental design. The smallest model uses a 5 × 5 tile corresponding to a 0.75 m-wide area and therefore already incorporates neighbouring spatial information. The study does not include a focal-pixel-only model, meteorological variables alone, or a model combining the focal pixel with meteorological variables. The incremental contribution of spatial context is therefore not directly isolated. Conventional statistical or machine-learning baselines would also be necessary to establish whether the proposed deep architecture is required. More importantly, a comparison with an established physically based microclimate model would be necessary before drawing conclusions about deficiencies in those models or proposing that the identified scale should guide their extension.
+\end{revcomment}
+
+\begin{revresponse}
+We added a single-pixel ($1\times 1$) CNN baseline using local predictors and flight weather (Sections~2.3--2.4, lines 174--175, 208--209; Supplementary Section~S2), together with a comparison of 1D and 2D physical models (Itzkovitch et al., 2026; Sections~2.5 and 3.3, lines 252--294, 457--485). We agree that comparing against separate mechanistic packages such as \textit{NicheMapR} or \textit{microclimf} would assess practical prediction performance, but we used two versions of one energy-balance model sharing identical radiation and soil equations so we could isolate the added lateral terms cleanly (Section~2.5, lines 256--261). We also recognize the value of a weather-only baseline and of conventional regressors or alternative neural architectures (such as Random Forest or linear regression) for evaluating weather effects and architecture dependence. Because our study targets within-submap spatial contrasts across which flight weather is constant, and focuses on isolating the added value of neighboring raster cells at fixed parameter count, we compared wider tiles against the single-pixel-plus-weather baseline within the same architecture rather than fitting separate weather-only or regressor benchmarks. Accordingly, our conclusions concern the benefit of neighboring inputs within this architecture, not the necessity of this CNN, an architecture-independent plateau, or the unimportance of weather for absolute temperature prediction.
+\end{revresponse}
+
+\begin{revcomment}
+4. The claimed 5-7 m threshold is itself insufficiently defined. The reported dimensions are tile side lengths, although the target pixel is positioned at the centre of each tile. A 7.05 m-wide tile therefore represents a maximum centre-to-edge distance of approximately 3.5 m, not 7.05 m. The manuscript does not explain which of these quantities is intended to represent the physical distance of influence. There is also an inconsistency between the Results, which state that performance stabilised at a tile size of 31 pixels or 4.65 m, and the subsequent analysis, which suggests levelling at 47 pixels or 7.05 m. The range reported in the abstract appears to combine these observations rather than derive from a formal breakpoint analysis. No uncertainty interval is provided for the proposed threshold. A visual plateau in model error is not sufficient to estimate a physical process scale.
+\end{revcomment}
+
+\begin{revresponse}
+We defined tile width $W$ versus center-to-edge half-width $W/2$ in Section~2.3 (lines 175--176). We replaced visual inspection with a formal breakpoint analysis of the 27 midday shaded submaps in Sections~2.6 and 3.1 (lines 316--341, 416--427). We fitted quadratic- and linear-plateau GLMMs across candidate thresholds $X_0$, then cross-checked the result with consecutive tile-width comparisons and the local slope of the fitted GAMM curve. We estimated a quadratic-plateau breakpoint at \textbf{$X_0 = 14.5$ pixels ($2.18$~m tile width; 95\% CI: $1.73\text{--}2.70$~m; half-widths of $0.9\text{--}1.4$~m)}, supported by consecutive comparisons and by the smooth GAMM slope flattening from the $2.25$~m tile onward.
+\end{revresponse}
+
+\begin{revcomment}
+5. Several aspects of data preprocessing and evaluation are also unclear or potentially problematic. Ground-temperature labels were centred separately for each map by subtracting the map-specific mean. It is therefore unclear whether the model predicts absolute ground temperature or only within-map temperature anomalies. If the observed mean of each test thermal map is used to reconstruct absolute temperature, target information is being incorporated into the prediction. If it is not reconstructed, the manuscript should not describe the output as absolute ground-temperature prediction. This procedure also removes between-flight temperature variation, despite the broader claims concerning prediction across temporal and meteorological conditions.
+\end{revcomment}
+
+\begin{revresponse}
+We trained the CNN to predict temperature differences relative to open ground ($\Delta T_g$), not absolute temperatures (lines 105--109, 178--182). We do not use test observations to produce predictions: we center predicted and observed maps separately before scoring (Eq.~2, lines 225--236). Predicting absolute temperatures at new sites requires an external open-ground reference (Section~4.4, lines 587--592; Supplementary Section~S2.3, Table~S5).
+\end{revresponse}
+
+\begin{revcomment}
+6. The validation strategy does not adequately address spatial dependence. Training and validation tiles were randomly divided even though the tiles overlap spatially, and the authors acknowledge that some pixels may occur in both sets. Although separate flights were reserved for testing, it is unclear whether those flights covered independent geographic areas or repeated the same terrain under different conditions. If the same landscape was repeatedly surveyed, static terrain and habitat configurations could appear in both training and testing. Validation loss from overlapping tiles was also used for model selection, which may lead to optimistic epoch selection. Evaluation should be blocked by both field day and geographic area. The authors also need to establish that identical focal locations and evaluation masks were used across tile sizes, because larger windows necessarily exclude more boundary pixels and may generate different sample compositions.
+\end{revcomment}
+
+\begin{revresponse}
+We used non-overlapping $50\times 50$~m blocks (55\% train, 15\% validation, 30\% test) and 10 test flights from three independent field days to prevent tile overlap and keep test days out of training (Section~2.3, lines 156--170). We kept target pixels $\ge 6.58$~m inside each block border so that all nine tile widths are evaluated on the exact same 437,449 target pixels (lines 162--165).
+\end{revresponse}
+
+\begin{revcomment}
+7. The reliability of the temperature reference data requires substantially greater attention. The thermal camera is reported to have an accuracy of ±5°C, and the imagery was calibrated using a constant correction derived from weather-station measurements. The reported prediction errors are potentially smaller than this nominal sensor uncertainty. Spatially varying errors associated with surface emissivity, viewing geometry, atmospheric effects, image mosaicking and sensor drift are not evaluated. In addition, individual flights lasted between 20 and 60 minutes. Ground temperature can change rapidly over such periods, especially during the morning and evening—the same periods in which the manuscript reports the strongest spatial effects. Unless image acquisition time was explicitly corrected, temporal change along the flight path may be embedded within the thermal maps and mistaken for spatial structure.
+\end{revcomment}
+
+\begin{revresponse}
+We agree that spatially varying thermal errors and within-flight drift could affect our estimates and should be characterized independently. We have not independently quantified frame-level drift, viewing-angle effects, or spatial emissivity differences, and we now state these limitations explicitly in Section~4.4 (lines 601--606). Centering temperatures on open ground within each $50\times 50$~m submap cancels uniform submap offsets but does not remove spatially varying errors. Because our low-sun results rely on only two flights per period, we discuss both elongated shadows and gradual flight-line temperature changes as possible explanations for error reductions at the widest tiles (Section~4.1, lines 507--511).
+\end{revresponse}
+
+\begin{revcomment}
+8. The statistical analysis also requires greater justification. The second analysis selects only 20 locations from each test map and models squared prediction error against environmental characteristics. The effective sample size, distribution across flights and days, GAMM specifications, basis dimensions, diagnostic checks and complete AIC comparisons are not presented in the manuscript. More generally, testing whether errors vary with environmental conditions does not establish that these conditions modify lateral heat transfer. The conclusions remain dependent on the assumption that changes in neural-network error directly represent changes in physical spatial coupling, which has not been demonstrated.
+\end{revcomment}
+
+\begin{revresponse}
+We replaced the 20-point analysis with shuffling one input map at a time within test submaps (Section~3.2, lines 428--456). In Section~2.6 (lines 295--379) and Supplementary Tables~S2 and S5, we specify the subset sample sizes (50 test submaps, 47 shaded submaps overall, and 27 midday shaded submaps, shared across the CNN and physical-model evaluations; lines 319, 358--360, 388--390) and all statistical models. For the main scaling analysis, we used a Gamma distribution with a log link, penalized thin-plate regression splines ($k = 8$ basis dimensions), flight random intercepts, and submap-by-microhabitat factor smooths (\texttt{bs = "fs"}, $k = 5$; Supplementary Table~S2). We now list all eight candidate GAMMs in Supplementary Table~S2 and describe the \textit{DHARMa} dispersion and outlier checks in Section~2.6 (lines 375--377); we used unconditional residual simulations, and all models passed these two checks. Through the physical-model comparison, we test the consequences of adding lateral exchange rather than claiming direct measurements of field fluxes.
+\end{revresponse}
+
+\begin{revcomment}
+9. Finally, the manuscript overstates the generality and transferability of the framework. The analysis is based on one arid study system with limited vegetation and vertical complexity, using 33 flights over only eight field days. The authors themselves recognise that the inferred spatial relationships may differ in ecosystems with denser canopies, stronger vertical structure or greater moisture effects. Without evaluation in independent landscapes, ecosystems or sites, claims that the model is general and transferable are premature.
+\end{revcomment}
+
+\begin{revresponse}
+We agree that independent-site evaluation is required before claiming transferability to other ecosystems. Because the present dataset comes from a single hyper-arid alluvial fan, we bounded our claims accordingly rather than presenting the model as generally transferable without that test. We revised the title (lines 1--2) and Conclusions (lines 617--629) to focus on desert bare ground and open, sparsely vegetated landscapes, and expanded Section~4.4 (lines 597--616) to detail single-site, sparse-vegetation, and forest limitations. We did not conduct independent-site validation.
+\end{revresponse}
+
+\begin{revcomment}
+Overall, the study contains an interesting predictive experiment, but the central scientific contribution is not established. The evidence supports the narrower conclusion that larger spatial input windows can improve prediction of within-map ground-temperature variation in this particular dataset. It does not support the conclusion that the study has identified a 5-7 m physical scale of horizontal heat transfer or radiative interaction.
+\end{revcomment}
+
+\begin{revresponse}
+We agree that CNN accuracy gains alone cannot identify a physical transfer distance, and our surveys did not include direct field heat-flux measurements. We therefore revised the manuscript to report the CNN plateau strictly as a predictive input threshold and added the 1D-versus-2D physical-model comparison as separate, model-based evidence (Sections~2.5 and 3.3, lines 252--294, 457--485). Direct field measurements of lateral heat flux across shade margins remain necessary (Section~4.4, lines 575--577).
+\end{revresponse}
+
+\clearpage
+
+% ==============================================================================
+% REVIEWER 4
+% ==============================================================================
+\reviewer
+
+\section*{General Comments}
+
+\begin{generalcomment}
+The authors provide an interesting approach to estimating daytime surface temperatures in the Judean desert (Israel), training a convolutional neural network using drone imagery and a weather station. Overall, the paper is well written and accessible to an ecological audience even with only rudimentary knowledge of microclimate modeling and deep learning. I think there is potential for strong fit with Ecological Informatics. I have three high-level concerns (numbered 1-3 below) and a series of line-specific comments. I hope the authors find my comments useful for improving their study and manuscript.
+\end{generalcomment}
+
+\begin{revresponse}
+We thank Reviewer~\#4 for the encouraging feedback and clear roadmap. Following Suggestions 1A and 1B, we added analyses across times of day, midday input shuffling, and a physical-model comparison with and without lateral exchange (Sections~3.1--3.3). We revised the paper's framing around these analyses of desert ground-temperature patterns.
+\end{revresponse}
+
+\subsection*{High-Level Concerns}
+
+\begin{revcomment}[breakable]
+1. I appreciate the premise of a study seeking to understand how local spatial context improves pointwise prediction, and I think there is potential value added from both the approach and the insights of this study. But I don't think the approach is generalizable enough to consider it a deployable toolkit (eg see my concerns below on limited contextual windows that drones can sample, and the software repository isn't written as a Python package), and the insights also aren't quite generalizable or novel enough so that I feel like I better understand fundamental processes of near-surface meteorology. I think this paper could be much stronger if the authors steer it more clearly into one of these two lanes: a deployable toolkit, or presentation of findings that help us better understand desert microclimate processes. I think either (or both) of these lanes is achievable without completely re-doing the present study. Below (A and B), I provide two steps by which I believe the authors can achieve the second lane, helping us learn more about desert microclimates. Either A or B would likely provide sufficient enhancement to make this a more impactful study. I don't intend to prescribe these enhancements per se, but rather inspire the authors to explore further. If the authors prefer to present this manuscript as describing a generalizable, deployable toolkit, this would also be useful, but note my concerns below about the limitations of drone imagery.
+
+A. The authors could train different CNNs with different input feature layers, to represent different processes (eg surface reflectance vs skyview shading). Could subset to just times of day / locations for which we'd have strongly-supported hypotheses of which process to be more important (eg surface reflectance less important during cloudy conditions). Do this set of CNNs collectively capture expected relationships of when and why certain processes are important - and perhaps therefore emulate such processes? In lines 400 - 403 the authors acknowledge that their approach does not enable inference to be drawn on the relative contributions of different physical processes - training a set of CNNs in this matter would be a step in this direction.
+
+B. I'd find this study much more interesting, and impactful, if there was some engagement with mechanistic microclimate modeling. How does the skill of the CNN compare to that of a mechanistic model, such as NicheMapR developed by co-author Kearney? In what ways do extrapolated CNN predictions (eg extrapolated to seasons, or during extreme events such as a heat wave, not represented in training data) diverge from mechanistic model predictions? For what contexts and research questions would it be more appropriate to use this proposed drone + CNN approach instead of (or in addition to) sensor networks or mechanistic models? Such a comparison would likely provide useful insights for their Discussion section on hybrid modeling (which I appreciate that the authors have mentioned).
+\end{revcomment}
+
+\begin{revresponse}
+We now frame the paper as a study of desert ground-temperature patterns, supported by two sets of analyses:
+\begin{itemize}[leftmargin=*, itemsep=0.2em]
+    \item \textbf{Suggestion 1A}: We agree that retraining separate CNNs on different predictor subsets would help evaluate individual input combinations. In this revision, we chose post-training permutations because they measure the reliance of the same fitted network on each layer while keeping its learned weights fixed. We also compared spatial context effects across times of day and microhabitats and found the strongest gains in midday shade (Section~3.1, lines 396--415, Fig.~5). Midday permutations showed reliance on solar radiation, skyview factor, shade, and obstacle height, with no statistically significant effect from TGI (Section~3.2, lines 428--442, Fig.~6; Supplementary Table~S3). We did not train separate feature-subset CNNs; because the spatial inputs are correlated, changes in error show which inputs the trained CNN relies on rather than independent physical-process contributions (discussed in Section~4.4, lines 570--577).
+    \item \textbf{Suggestion 1B}: We agree that comparisons with established microclimate packages would help assess practical prediction performance. To isolate the added lateral terms cleanly, we compared the 1D and 2D versions of one energy-balance model (Itzkovitch et al., 2026) that share identical radiation, topographic shading, and soil equations (Section~2.5, lines 256--261; results in Section~3.3, lines 458--479); comparing directly against a separate canopy-focused package such as \textit{microclimf} would confound lateral heat exchange with differing soil, canopy, and radiation parameterizations, and this comparison does not establish that our model outperforms \textit{NicheMapR} or \textit{microclimf}. We also compared the 2D physical model directly against the CNN trained on $4.65$~m tiles at the exact same 8,273 midday shaded pixels across all 27 midday shaded submaps of the CNN's 30\% terrain-stratified test split using identical open-ground centering (Section~3.3, lines 480--485; Supplementary Table~S5), where the CNN achieved lower error ($2.65 \pm 1.68$ vs.\ $4.88 \pm 3.50^{\circ}\mathrm{C}^2$, lower in 23 of 27 submaps, $p < 0.001$). We recognize the value of dedicated seasonal or heat-wave extrapolation tests for evaluating model use under unfamiliar regimes, but we focused this revision on within-submap contrasts across the measured test flights and did not add separate seasonal or heat-wave extrapolation experiments. We documented the observed wind-direction extrapolation issue in Supplementary Section~S2.3 (noting that it does not establish performance during unobserved extremes) and discussed how empirical and physical models complement one another in Sections~4.2--4.4 (lines 547--596).
+\end{itemize}
+\end{revresponse}
+
+\begin{revcomment}
+2. The authors only used drone-derived thermal estimates for model training and testing, yet there are important caveats to such measurements. I would appreciate if the authors provided more discussion on the generality of their approach and their findings. The approach requires drone flights and a weather station (used for calibrating the drone thermal estimates, and required for calculating solar radiation, per the Supporting Information). Drone surface temperature estimates can have notable errors (as they report, +/- 5C) and cannot capture conditions below vegetated canopies or rocky crags. Their method is also limited to conditions in which one would fly a drone, which probably wouldn't include times of high wind, precipitation, or at night - but all locations/times which may generate ecologically important microclimate gradients. While this study would be stronger if testing was performed with out-of-sample sensor observations (which of course have their own concerns and biases), it is important to at least more deeply describe the drawbacks of drone thermal sensing.
+\end{revcomment}
+
+\begin{revresponse}
+We agree that independent ground-sensor comparisons and sampling across nighttime, high-wind, precipitation, and sub-canopy conditions would strengthen the evaluation. However, our fixed-wing surveys were limited to safe daytime flying conditions, aerial thermal imagery cannot see ground beneath dense foliage, and we did not collect independent ground-logger measurements across the study blocks. We expanded Section~4.4 (lines 597--616) to note the single-site scope, the inability of drone thermography to penetrate foliage (requiring ground loggers in forests), and the lack of evaluation under nighttime, precipitation, or high-wind conditions. We described the station calibration in Section~2.2 (lines 111--116) and clarified in Section~4.4 (lines 587--592) that absolute CNN predictions require an external open-ground reference. We also expanded Section~4.4 (lines 601--606) to acknowledge the camera's $\pm 5^\circ$C factory uncertainty and unquantified emissivity differences and drift during 20--60~min flights, and added a statement (lines 575--577) that direct validation of modeled lateral heat fluxes still requires field measurements with anemometers and thermocouples.
+\end{revresponse}
+
+\begin{revcomment}
+3. There's a few published microclimate tools that the authors should review, and briefly discuss how their approach and study complements these other tools:
+Alujevi{\'c} et al. 2025 MEE and the 'throne' package: \url{https://besjournals.onlinelibrary.wiley.com/doi/10.1111/2041-210X.70096}
+Maclean 2026 MEE and the 'microclimf' package: \url{https://onlinelibrary.wiley.com/doi/abs/10.1111/2041-210x.70253}
+
+On a related note: the authors are correct that some mechanistic microclimate modeling approaches estimate temperature and other variables independently for each location. However this is not the case for all current modeling tools. The microclima R package (which interfaces with NicheMapR) and the microclimf R package both provide software that is accessible to ecologists for mechanistically representing some (but not all) important lateral processes. It would therefore be appropriate to de-emphasize the novelty of modeling spatial microclimate, and perhaps referencing these tools.
+\end{revcomment}
+
+\begin{revresponse}
+We cite \textit{microclimf} (Maclean, 2026) in the Introduction (line 54) and Discussion Sections~4.1--4.3 (lines 493, 531, 564), and we cite \textit{throne} (Alujevi{\'c} et al., 2025) in Section~4.3 (line 564). We also qualified our statements in lines 11--13 and 51--57 to note that spatial models already resolve topographic shading and sky exposure across grids, while clarifying in lines 490--493 and 530--534 that most formulations compute turbulent heat exchange independently for each column or location.
+\end{revresponse}
+
+\subsection*{Line-Specific Comments}
+
+\begin{revcomment}
+Highlights: "Our analysis suggests spatial coupling shapes ecological thermal niches." As this study doesn't evaluate thermal niches, avoid mentioning here.\\
+42: also see Maclean 2026, Van de Walle 2026—or just put "e.g.," in front of citations to more clearly suggest NicheMapR and microclima are not the only models
+\end{revcomment}
+
+\begin{revresponse}
+We rewrote the Highlights to remove ``probe'', ``5--7 m'', ``radius'', and ``ecological thermal niches'', to identify MSE explicitly, and to report the fitted plateau threshold with its 95\% confidence interval:
+\begin{changes}
+\begin{itemize}[leftmargin=*, nosep]
+    \item Drone maps and a fixed-capacity CNN test the benefit of wider terrain inputs.
+    \item A 4.65 m tile cuts midday MSE by about 60\% in shade and 20\% in open sand.
+    \item Midday shade gains plateau at a 2.18 m tile width (95\% CI: 1.73--2.70 m).
+    \item Midday predictions rely most on solar radiation, skyview factor, and shade.
+    \item Adding lateral heat exchange to the physical model cuts shaded-ground MSE by 55\%.
+\end{itemize}
+\end{changes}
+We also added ``e.g.,'' alongside Maclean (2026) and Van de Walle et al.\ (2026) (\textit{ForEdgeClim}) in the Introduction (lines 53--56).
+\end{revresponse}
+
+\begin{revcomment}
+Figure 1: This might be my personal bias, but I find including some form of study map useful. Even better if there are photo(s) that give the reader a sense of what the desert landscape(s) looks like. For instant, I don't have a good grasp of the topographic heterogeneity of the sampled landscapes, or just how vegetated they are (Figure 4a seems to suggest very little vegetation but I can't quite tell). This can be accompanied by a slightly more detailed written description of the study area.
+\end{revcomment}
+
+\begin{revresponse}
+We added a representative $\approx 164 \times 164$~m drone RGB orthophoto submap in \textbf{Supplementary Fig.~S1} to illustrate the gravelly sand plain, wadi channels, scattered limestone rocks, and sparse shrub cover ($\approx 5\%$). We also retained the RGB, DSM, and thermal workflow thumbnails in Figure~1 and expanded the written site description in Section~2.2 (lines 96--104).
+\end{revresponse}
+
+\begin{revcomment}
+Methods: somewhere it would be useful to mention the temporal window of meteorological data used to calibrate and augment drone measurements. Weather station measurements were made every 10 minutes; were only measures exactly coinciding with the 20-60min drone flights used? Or measures beyond the exact flight duration?\\
+115: 65\% overlap across both within-track tiles and between tracks?\\
+123-125: can you say more about the calibration of drone thermal measurements to the weather station measurements? By "assuming a constant calibration value across all pixels", do you mean you calculated the difference between drone estimate and weather station measure (averaged across drone flight?), and then applied that difference for all pixels (for that same flight)? How much were these differences? Supporting figures / tables would be useful.\\
+131: please briefly describe Triangular Greenness Index, which may not be familiar to all readers.
+\end{revcomment}
+
+\begin{revresponse}
+We expanded Section~2.2 to report that flights covered $0.3\text{--}1.0~\text{km}^2$ in 20--60~min with \textbf{65\% along-track and across-track overlap} (lines 109--111), and specified that each flight was matched to one 10-minute station record at flight start time rather than a multi-step flight average (lines 123--125). For the physical model, we added a 24-hour ERA5-Land spin-up (lines 126--128; Supplementary Section~S3.1.6). We clarified the calibration procedure in Section~2.2 (lines 111--116) and \textbf{Supplementary Fig.~S2}: before modeling, we added a constant per-flight offset to each thermal orthomosaic, defined as the station bare-sand temperature minus the mean bare-ground drone temperature across that flight's five submaps ($-5.9$ to $+5.3^\circ\mathrm{C}$ across 33 flights). We also describe the subsequent open-ground centering in Eq.~2 (lines 225--236), which removes any remaining uniform submap offset. We define the Triangular Greenness Index (TGI) in Section~2.3 (lines 153--155) and Supplementary Section~S1.4.
+\end{revresponse}
+
+\begin{revcomment}
+153 - 155: to some readers familiar with microclimatic / mesoclimatic processes, it may seem surprising that 12.15m x 12.15m was the largest spatial window explored. Especially for windy conditions in flat areas, or near edges of vegetated patches, a broader spatial context may be important for shaping focal temperatures. Figure 5 suggests saturation of predictive gains at 5-7m for morning and evenings, although slightly less so for noon conditions. It would be more interesting if larger spatial window sizes were also explored. Or at least, an acknowledgement more up front that preliminary analyses suggested that for this approach predictive benefits saturated at 5-7m and therefore windows larger than 12.15m x 12.15m were not explored. If you go with this latter approach, include some treatment in the Discussion of why or why not lateral air mass exchange across broader extents would matter in this landscape. I suspect that drone flights were only performed during relatively low-wind conditions (can you quantify this via your weather station?), which might be one reason why performance improvements saturated at a relatively narrow spatial context.
+\end{revcomment}
+
+\begin{revresponse}
+We agree that broader input areas could matter under stronger winds or near taller vegetation. We retained $12.15$~m as the maximum tested width because midday shaded-ground gains leveled off at an estimated $2.18$~m tile width (95\% CI: $1.73\text{--}2.70$~m; Section~3.1, lines 416--427, Fig.~5b), with no further improvement across the larger tested widths. We report the measured station wind-speed range and mean across all 33 flights ($0.5\text{--}5.0~\text{m s}^{-1}$, mean $1.8~\text{m s}^{-1}$; Section~4.2, lines 544--546) and discuss the limits of this interpretation in Sections~4.2 and 4.4 (lines 544--546, 599--601, 614--616). We did not test windows wider than $12.15$~m; the midday plateau does not rule out benefits beyond $12.15$~m in the morning or evening, where gains appeared only at the widest tested tiles, or under stronger winds and taller canopies.
+\end{revresponse}
+
+\begin{revcomment}
+153 - 161: was the mobile weather station always placed to coincide (or very close to) the focal pixel?\\
+Figure 2: I would find it useful to have a panel with the RGB image of this scene, much as has been done in Figure 4.\\
+Figure 5: could you change the x axis units to cm or meters instead of pixels? This will be more generalizable and accessible to readers.\\
+275-277: I'm hesitant to agree that this approach is general and transferable, given drone costs and flight logistics, weather station, deployment only in fairly barren desert, etc. as I've mentioned above. Would be good to indicate caveats here briefly.\\
+Figure 6: what's the unit of x axis "size"? Could you make this meters or m2?\\
+312: I don't think that "coherent" is the best word to use here.\\
+422 - 423: such simplifying assumptions are not made in all microclimate models, so this statement should be toned back
+\end{revcomment}
+
+\begin{revresponse}
+\begin{itemize}[leftmargin=*, itemsep=0.2em]
+    \item \textbf{Weather station}: We clarified in Section~2.2 (lines 118--120) that the station remained in one open sand patch, and we explain in Section~2.3 (lines 156--165) that CNN prediction targets were distributed across the $50\times 50$~m test blocks rather than coinciding with the station.
+    \item \textbf{Figure~2}: We agree that RGB imagery helps readers interpret the terrain and vegetation. We kept Figure~2 focused on illustrating the changing tile widths rather than adding another RGB panel, because RGB imagery of the landscape is already shown in Figure~1 and the newly added Supplementary Fig.~S1, alongside the expanded site description in Section~2.2.
+    \item \textbf{Figures~2, 5, 6, and S4}: We now express tile width in meters across all figures and headers ($1.35\text{--}9.45$~m in Fig.~2; $0.15\text{--}12.15$~m in Figs.~5, 6, and Supplementary Fig.~S4).
+    \item \textbf{Scope}: We state the single-site and drone-sensing limitations in Section~4.4 (lines 597--616) and Conclusions (lines 626--629).
+    \item \textbf{Wording}: We deleted ``coherent'' and qualified our statements about 1D models (lines 11--13, 530--534).
+\end{itemize}
+\end{revresponse}
+
+\clearpage
+
+% ==============================================================================
+% REVIEWER 5
+% ==============================================================================
+\reviewer
+
+\section*{General Comments}
+
+\begin{generalcomment}
+The paper presents the use of neural network to determine the optimal neighbor scales for prediction of surface temperature in desert location in Israel. The idea to use neural network to determine the optimal neighbor for the microclimate temperature predicting is interesting. The paper is well organized and reads well. Nevertheless, there are several issues listed below which I believe should be addressed.
+\end{generalcomment}
+
+\begin{revresponse}
+We thank Reviewer~\#5 for the helpful comments on title scope, thermal calibration, vegetation masking, GIS radiation modeling, station sensors, and GAMM reporting.
+\end{revresponse}
+
+\subsection*{Detailed Responses to Specific Comments}
+
+\begin{revcomment}
+- The title is on the edge of overselling. It sounds like the general framework for microclimate modelling, but in fact it is very specific case study covering very limited range of environmental and vegetation conditions. The title also say microclimate, but the rest is only about soil surface temperature. I believe that the title should better reflect the actual content of the paper.
+\end{revcomment}
+
+\begin{revresponse}
+We revised the title to \textbf{``Deep Learning and Energy-Balance Modeling Reveal How Surrounding Terrain and Lateral Heat Exchange Shape Desert Ground Temperatures''} (lines 1--2) and specify bare ground surface temperature ($T_g$) consistently.
+\end{revresponse}
+
+\begin{revcomment}
+- Perhaps the main limitation of the whole paper is complete reliance on thermal imagery of land surface temperature as a true microclimate temperature. Authors used the single weather station to adjust the whole thermal imagery (line 125). But what was the relationship between the thermal imagery and locally measured (ground?) temperatures? Was it linear? How exactly was the adjustment made?
+
+- Given the claimed ±5°C accuracy of the thermal camera used by the authors (line 110), I really doubt that this is the robust measure of microclimate temperature used as a ground true against which to evaluate all results. To increase the confidence in the presented results I would like to see (at least) the relationship between measured ground temperature and thermal camera measurements?
+
+- How justified is the same adjustment used for the whole thermal imagery based on single point with weather station measurements? This means that the author made several key assumptions, for example that the emisivity of the vegetation, soil, rocks and all other surfaces in the whole study area is the same. Is this really well justified?
+\end{revcomment}
+
+\begin{revresponse}
+We agree that independent comparisons between ground measurements and drone temperatures would strengthen the evaluation. However, we did not collect independent ground-logger measurements across the study blocks, so we cannot provide pixel-level ground validation from these surveys. We added \textbf{Supplementary Fig.~S2} to plot the applied per-flight offset (station bare-sand temperature minus the mean bare-ground drone temperature across each flight's five submaps) against weather-station ground temperature across all 33 flights. We chose to plot the applied offset against station temperature rather than fitting a station-versus-drone regression so readers can inspect the magnitude and sign of the additive correction directly without treating calibration inputs as independent validation. We clarified this additive calibration in Section~2.2 (lines 111--116) and noted that open-ground centering ($\Delta T_g$, Eq.~2, lines 225--236) cancels uniform per-flight offsets. We also added explicit limitations in Section~4.4 (lines 601--606) noting that uniform-offset cancellation neither validates pixel-level accuracy nor removes spatial emissivity differences and within-flight drift.
+\end{revresponse}
+
+\begin{revcomment}
+- There are empirical microclimate studies which explore exactly the same questions about the optimal size of the neighbor when modelling local temperature (e.g. \url{https://doi.org/10.1016/j.rse.2021.112522}, \url{https://doi.org/10.1111/2041-210X.12427}). However, these studies are not mentioned and discussed in the reviewed paper. I firmly believe that comparison with these studies would put the results presented in the paper in more relevant context. How is the presented approach beneficial compared to the approaches used in previous literature?\\
+- line 348 - see also \url{https://doi.org/10.1016/j.rse.2021.112522}
+\end{revcomment}
+
+\begin{revresponse}
+We added a comparison with previous multiscale studies in Discussion Section~4.1 (lines 518--528) and distinguished our estimated plateau tile width of $2.18$~m (95\% CI: $1.73\text{--}2.70$~m; half-widths of $0.9\text{--}1.4$~m) from their grid resolutions and buffer radii. Leempoel et al.\ (2015) tested alpine DEM resolutions of $0.5\text{--}4$~m, where fits either declined at coarser resolutions or peaked at $2$~m depending on the variable; Gril et al.\ (2023) found a $5$~m temperate-forest canopy buffer radius across scales of $1\text{--}100$~m, whereas Ka{\v{s}}par et al.\ (2021) identified broader canopy scales in temperate forests. Our contribution is to pair this predictive comparison with a controlled energy-balance experiment, which supports lateral air exchange as a plausible physical mechanism for the 1D shade-cooling bias (Section~4.2, lines 537--546).
+\end{revresponse}
+
+\begin{revcomment}
+- I am confused that authors wrote that they excluded all pixels with vegetation (line 203), but in the same time provide and discuss prediction errors for shaded microhabitats (e.g. line 248). The exclusion of the pixels with the vegetation would represent substantial limitation of the whole study, because it would remove exactly one of the main drivers of the microclimate temperature and therefore the results would be less applicable to real landscapes. If the vegetation covered pixels were really excluded, the study (including the title) should clearly indicate (and discuss implication off), that the results are valid only for part of the landscape not covered by vegetation.
+\end{revcomment}
+
+\begin{revresponse}
+We changed the microhabitat label to \textbf{shaded ground} throughout. We clarified the exclusion of vegetated prediction targets ($\text{TGI} > 0.04$) in Section~2.2 (lines 116--117) and restated it in Section~4.4 (lines 607--613): aerial thermal cameras measure canopy tops rather than the soil beneath them. Supplementary Section~S1.4 describes the TGI calculation. We retained vegetated pixels in the input tiles, and shaded targets represent visible bare ground beside rocks and shrubs.
+\end{revresponse}
+
+\begin{revcomment}
+- Figure 6 (and 5) - the lines are claimed to show GAM fit to the data , but shown lines are clearly not smooth functions from GAM. To me it looks like piecewise regression, but definitely not correctly fitted GAMs. Beside correcting the figure captions, authors should also provide more specific information about their use of GAM models (e.g. which family, how many DF, which smoothness selection criterion...)
+\end{revcomment}
+
+\begin{revresponse}
+We redrew the fitted curves and 95\% confidence bands on a grid at 1-pixel intervals ($0.15\text{--}12.15$~m; Figures~5, 6, and Supplementary Fig.~S4). We expanded Section~2.6 (lines 295--377) to specify the Gamma distribution with a log link and penalized thin-plate regression splines with basis dimension $k = 8$. We also described the random-effects structure: flight random intercepts and submap-by-microhabitat factor smooths (\texttt{bs = "fs"}, $k = 5$; Supplementary Table~S2). We selected smoothness by fast restricted maximum likelihood in \textit{mgcv::bam} and listed all eight candidate scaling models in Supplementary Table~S2. We added effective degrees of freedom to the Results (lines 401--413) and described the \textit{DHARMa} procedure in Section~2.6 (lines 375--377): we used unconditional residual simulations to check dispersion and outliers, and all models passed these two checks.
+\end{revresponse}
+
+\begin{revcomment}
+- How exactly was the drone imagery processed to derive DTM? The derivation of DSM is quite straightforward, but derivation of DTM from optical imagery is not.
+\end{revcomment}
+
+\begin{revresponse}
+Because shrub cover at our site is sparse (about 5\%; lines 100--101), we generated the DTM directly in Pix4DMapper via automated bare-ground point classification between isolated rocks and shrubs. We aligned the DTM to the 15~cm grid and calculated obstacle height as $\text{DSM} - \text{DTM}$ (Section~2.3, lines 134--140, 151--152; Supplementary Section~S1.5).
+\end{revresponse}
+
+\begin{revcomment}
+- Authors wrote that the Triangular Greenness Index is often used for microclimate predictions (lines 131 - 133). I seriously doubt this claim. Why TGI and not much more often used NDVI or LAI?
+\end{revcomment}
+
+\begin{revresponse}
+We agree that NDVI or LAI would provide familiar vegetation measures for comparison with other studies. However, the Duet~T camera recorded only RGB and thermal bands without the near-infrared band needed for NDVI, and we did not collect field LAI measurements or calibrated LAI products across these surveys. We therefore used TGI (Hunt et al., 2013) as an RGB-based indicator of sparse green cover while capturing shrub structure through obstacle height, shade, and skyview factor. We removed the unsupported claim that TGI is often used in microclimate prediction and explained this choice in Section~2.3 (lines 153--155) and Supplementary Section~S1.4; TGI is not presented as equivalent to LAI.
+\end{revresponse}
+
+\begin{revcomment}
+- In Appendix S1, the authors wrote that they calculated solar radiation from the Digital Surface Model. However, I am convinced that this approach should be used for calculating solar radiation from DTM. Is it valid to use the framework implemented in GRASS GIS (r.sun) to calculate solar radiation from DSM? For example, r.sun assumes that the DTM represent solid land surface, but substituting DTM with DSM would mean that the surface is not always solid land surface, but for example woody vegetation, which allow part of the radiation to go through the canopy, but r.sun assume that it is solid land surface.
+\end{revcomment}
+
+\begin{revresponse}
+We agree that treating vegetation as a solid surface omits light transmission through foliage. We retained the DSM input for \textit{r.sun} because we needed rocks and compact shrubs to be represented as obstacles casting shadows on adjacent bare ground. We described the DSM-based calculation in Section~2.3 (lines 142--145) and now explicitly state in Section~4.4 (lines 610--612) that this opaque-shrub approximation neglects partial light transmission through foliage and is unsuitable for porous forest canopies.
+\end{revresponse}
+
+\begin{revcomment}
+- line 46 - this is quite strong statement (which I generally agree), therefore, it should be supported by the appropriate references\\
+- How exactly was ground temperatures measured at the weather station? Sensor type, accuracy, shielding...\\
+- line 126 - resampled, but how?\\
+- line 128 How the authors support their claim that images were perfectly aligned (at 15 cm resolution) if their GPS on eBee X drone has claimed 2 m precision (line 127). Given this high precision, I guess that it was differential GPS with RTK (which type?) and that the authors used at least several ground control points. Please specify this key information in the paper.\\
+- line 219 - I think that more useful measure of local surface variation would be SD of aspect. Can the authors explain why they used SD of slope as a measure of local surface variation?\\
+- line 232 - not appropriate citation for mgcv R package, use citation() in R
+\end{revcomment}
+
+\begin{revresponse}
+\begin{itemize}[leftmargin=*, itemsep=0.2em]
+    \item \textbf{Original line 46}: We deleted this general opening sentence per Reviewer~\#1 and cited all introductory scaling claims (lines 39--65).
+    \item \textbf{Ground-temperature sensor}: We added the instrument and logger details to Section~2.2 (lines 118--123). A MaxiMet GMX501 station measured air meteorology, and a shielded \textbf{Apogee Instruments SI-421-SS infrared radiometer} measured bare-sand temperature. We specified the radiometer's $\pm 0.2^\circ\mathrm{C}$ accuracy and identified the Campbell Scientific CR300 data logger used to record its readings.
+    \item \textbf{Resampling and alignment}: We specify \textbf{Lanczos resampling} from 3~cm to 15~cm and state that we used \textbf{no RTK positioning or ground control points} (standard onboard GPS, $\sim 2$~m absolute accuracy; Section~2.3, lines 131--140). Because the RGB and thermal sensors share a rigid dual-camera housing, capture images simultaneously, and receive positioning from the same onboard GPS, the 2~m absolute GPS uncertainty affects both streams together rather than shifting RGB relative to thermal within a flight; we also visually inspected map alignment within each flight.
+    \item \textbf{Slope SD and \textit{mgcv} citation}: We replaced the 20-point slope-SD analysis with shuffling one input map at a time within each test submap (Section~3.2, lines 428--456). We clarified in Section~2.3 (lines 159--161) that both slope and aspect were used when assigning the $50\times 50$~m blocks to the CNN dataset partitions. We also updated the \textit{mgcv} citation to \textbf{Wood et al.\ (2016)} (\textit{JASA}, 111, 1548--1563; lines 308--309, References lines 789--791).
+\end{itemize}
+\end{revresponse}
+
+\vspace{1cm}
+\begin{center}
+\textbf{End of Responses to Reviewers}
+\end{center}
+
+\end{document}
