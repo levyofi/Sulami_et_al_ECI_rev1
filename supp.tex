@@ -89,8 +89,8 @@
 
 \begin{figure}[!ht]
 \centering
-\includegraphics[width=0.82\textwidth]{Figure_S2_station_offset.png}
-\caption{Per-flight thermal calibration offsets (station bare-sand ground temperature minus the mean bare-ground drone temperature across the flight's five submaps, $^\circ\mathrm{C}$) plotted against concurrent weather-station ground temperature across all 33 drone flights. Prior to modeling, each thermal orthomosaic was adjusted by adding this constant per-flight offset, and open-ground centering ($\Delta T_g$, main-text Eq.~2) removes any remaining uniform offset.}
+\includegraphics[width=0.98\textwidth]{Figure_S2_station_offset.png}
+\caption{Comparison between uncalibrated flight-mean bare-ground drone temperature and concurrent weather-station bare-sand temperature across all 33 drone flights: (a) raw flight-mean drone temperature versus station ground temperature (dashed 1:1 line and solid linear regression fit: slope $= 0.99 \pm 0.05$, intercept $= -0.77^\circ\mathrm{C}$, $R^2 = 0.92$, $p < 0.001$); (b) per-flight thermal calibration offset (station minus mean bare-ground drone temperature, mean $+1.10 \pm 2.47^\circ\mathrm{C}$, range $-5.9$ to $+5.3^\circ\mathrm{C}$) versus station ground temperature, showing no temperature-dependent trend (slope $= 0.009$, $p = 0.86$). Prior to modeling, each thermal orthomosaic was adjusted by adding this constant per-flight offset, and open-ground centering ($\Delta T_g$, main-text Eq.~2) removes any remaining uniform offset.}
 \label{fig:station_offset}
 \end{figure}
 
@@ -132,7 +132,7 @@ where $R_{\text{Red}}$, $R_{\text{Green}}$, and $R_{\text{Blue}}$ represent the 
 
 \subsection{Height}
 \noindent
-We calculated height as the Digital Surface Model (DSM) minus the Digital Terrain Model (DTM). The DSM records the elevations of rocks, terraces, and low vegetation as well as the ground. We generated the DTM in Pix4DMapper through automated classification of bare-ground points between isolated rocks and shrubs. Their difference estimates feature height and microtopographic variation across the landscape \citep[following][]{duffy_2021}. Heights approach zero in open areas and increase where features protrude above the ground.
+We calculated height as the Digital Surface Model (DSM) minus the Digital Terrain Model (DTM). The DSM records the elevations of rocks, terraces, and low vegetation as well as the ground. We generated the DTM in Pix4DMapper through automated classification of bare-ground points between isolated rocks and shrubs. Their difference estimates obstacle height and microtopographic variation across the landscape \citep[following][]{duffy_2021}. Heights approach zero in open areas and increase where surface elements protrude above the ground.
 
 
 \section{DEEP LEARNING MODEL ARCHITECTURE AND DATA PREPROCESSING}
@@ -145,7 +145,7 @@ We calculated height as the Digital Surface Model (DSM) minus the Digital Terrai
 \begin{equation} \label{eq:zscore}
 Z_k = \frac{X_k - \mu_k}{\sigma_k},
 \end{equation}
-where $\mu_k$ and $\sigma_k$ are the mean and standard deviation of feature $k$ in the training set.
+where $\mu_k$ and $\sigma_k$ are the mean and standard deviation of predictor $k$ in the training set.
 
 The model aims to predict temperatures relative to a local open-sand reference, defined as the mean temperature of flat, exposed bare sand (unshaded pixels with obstacle height $< 0.20$~m). For each submap $s$, this open-sand reference is $T_{\text{open}}(s) = \overline{T_g}\,\big|\,\text{SHD}=0,\ H<0.20~\text{m}$. If fewer than 50 pixels satisfy these criteria, we use all valid unshaded pixels. If fewer than 10 unshaded pixels remain, we use all valid pixels. This reference temperature is subtracted from every target pixel prior to training:
 \begin{equation}
@@ -262,7 +262,7 @@ In our test data, for example, morning and evening flights included wind directi
 \begin{figure}[!ht]
 \centering
 \includegraphics[width=\textwidth]{Figure_final_model_architecture_CI.png}
-\caption{Effect of removing individual neural-network components across tile widths ($0.15$ to $12.15$~m, corresponding to $1\times1$ to $81\times81$ pixels at $0.15$~m/pixel) at midday (08:00--16:00). Panels show fitted GAMM mean curves and 95\% confidence bands for open-ground-centered MSE (in $^{\circ}\mathrm{C}^2$; Eq.~2 in main text) comparing the intact baseline model (blue) against modified models (red): (a) removing the final tile-wide average and maximum summary pooling, (b) removing the FiLM weather-adjustment layers, and (c) setting all eight weather inputs to zero (Supplementary Table~S3). Shaded 95\% confidence bands represent uncertainty in the overall mean MSE across submaps rather than the paired within-submap contrast tested by the GAMM (Section~S2.3).}
+\caption{Effect of removing individual neural-network components (network ablation: disabling or zeroing a component or weather inputs at test time without retraining) across tile widths ($0.15$ to $12.15$~m, corresponding to $1\times1$ to $81\times81$ pixels at $0.15$~m/pixel) at midday (08:00--16:00). Panels show fitted GAMM mean curves and 95\% confidence bands for open-ground-centered MSE (in $^{\circ}\mathrm{C}^2$; Eq.~2 in main text) comparing the intact baseline model (blue) against modified models (red): (a) removing the final tile-wide average and maximum summary pooling, (b) removing the FiLM weather-adjustment layers, and (c) setting all eight weather inputs to zero (Supplementary Table~S3). Shaded 95\% confidence bands represent uncertainty in the overall mean MSE across submaps rather than the paired within-submap contrast tested by the GAMM (Section~S2.3).}
 \label{fig:arch_ablation}
 \end{figure}
 
@@ -503,7 +503,7 @@ Removed FiLM weather-adjustment layers & 0.950 & $-5.0\%$ & 0.015 & $-3.26$ & $0
 Weather inputs set to zero & 0.960 & $-4.0\%$ & 0.021 & $-1.87$ & $0.062$ & 10/30 \\ \hline
 \end{tabular}%
 }
-\caption{GAMM comparisons evaluating the effect of permuting individual spatial input layers and removing neural-network components at midday (08:00--16:00) on open-ground-centered prediction error (MSE ratio = $\text{Modified} / \text{Intact}$; Eq.~2 in main text). Each GAMM included random intercepts for flight ID, submap ID, and submap-by-condition ID and compared one modified CNN configuration against the intact baseline CNN across tile widths using marginal response ratios via \textit{emmeans}. The final column gives the number of the 30 midday submaps whose mean log-MSE was higher under the modification. Removing FiLM instead lowered MSE in 23 of 30 submaps. Solar radiation, skyview factor, binary shade, obstacle height, and tile-wide summary pooling contributed significantly to midday accuracy, whereas permuting TGI or zeroing weather inputs had no statistically significant overall effect once submap-level condition variation was included.}
+\caption{GAMM comparisons evaluating the effect of permuting individual spatial input layers (feature permutation: randomly shuffling pixel values within each test submap while keeping trained weights fixed) and removing neural-network components (network ablation: disabling or zeroing a component or weather inputs at test time without retraining) at midday (08:00--16:00) on open-ground-centered prediction error (MSE ratio = $\text{Modified} / \text{Intact}$; Eq.~2 in main text). Each GAMM included random intercepts for flight ID, submap ID, and submap-by-condition ID and compared one modified CNN configuration against the intact baseline CNN across tile widths using marginal response ratios via \textit{emmeans}. The final column gives the number of the 30 midday submaps whose mean log-MSE was higher under the modification. Removing FiLM instead lowered MSE in 23 of 30 submaps. Solar radiation, skyview factor, binary shade, obstacle height, and tile-wide summary pooling contributed significantly to midday accuracy, whereas permuting TGI or zeroing weather inputs had no statistically significant overall effect once submap-level condition variation was included.}
 \label{table:ablation_contrasts}
 \end{table}
 
